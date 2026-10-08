@@ -37,7 +37,11 @@ internal fun UiError.label() = when(this) {
     UiError.PLAYLIST -> Res.string.playlist_error; UiError.INVALID_IP -> Res.string.invalid_ip
     UiError.PERMISSION -> Res.string.lan_denied; UiError.PLAYER -> Res.string.player_error
     UiError.MIRROR -> Res.string.mirror_unavailable; UiError.NO_WIFI -> Res.string.no_wifi
-    UiError.APPS -> Res.string.apps_error
+    UiError.APPS -> Res.string.apps_error; UiError.XTREAM_INPUT -> Res.string.xtream_input_error
+    UiError.XTREAM -> Res.string.xtream_error; UiError.XTREAM_AUTH -> Res.string.xtream_auth_error
+    UiError.FILE -> Res.string.file_error; UiError.STREAM_URL -> Res.string.stream_error
+    UiError.GUIDE -> Res.string.guide_error; UiError.GUIDE_COMPRESSED -> Res.string.guide_compressed_error
+    UiError.GUIDE_NO_CHANNELS -> Res.string.source_guide_locked
 }
 @Composable internal fun PrimaryCta(text: String, enabled: Boolean=true, glyph: Glyph?=Glyph.RIGHT, onClick: ()->Unit) {
     Button(onClick=onClick,enabled=enabled,shape=RoundedCornerShape(18.dp),

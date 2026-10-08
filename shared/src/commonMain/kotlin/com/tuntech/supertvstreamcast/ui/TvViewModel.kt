@@ -9,12 +9,15 @@ import com.tuntech.supertvstreamcast.platform.AppPreferences
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpTimeout
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-enum class UiError { CONNECTION, COMMAND, PLAYLIST, INVALID_IP, PLAYER, MIRROR, PERMISSION, NO_WIFI, APPS }
+enum class UiError { CONNECTION, COMMAND, PLAYLIST, INVALID_IP, PLAYER, MIRROR, PERMISSION, NO_WIFI, APPS,
+    XTREAM_INPUT, XTREAM, XTREAM_AUTH, FILE, STREAM_URL, GUIDE, GUIDE_COMPRESSED, GUIDE_NO_CHANNELS }
 data class TvUiState(
     val step: Int = 0, val brand: TvBrand = TvBrand.SAMSUNG, val goal: Feature = Feature.REMOTE,
     val tab: Feature = Feature.HOME, val connectionOpen: Boolean = false, val connected: Boolean = false,
@@ -24,6 +27,9 @@ data class TvUiState(
     val apps: List<TvApp> = emptyList(), val appsLoading: Boolean = false,
     val scanning: Boolean = false, val scanned: Boolean = false, val discovered: List<TvDevice> = emptyList(),
     val lastHost: String = "", val recent: List<String> = emptyList(),
+    /** EPG keyed by channel URL; [guideUrl] is the provider-advertised XMLTV source (may embed Xtream credentials, never shown). */
+    val guide: Map<String, List<Programme>> = emptyMap(), val guideUrl: String = "",
+    val truncated: Boolean = false, val imported: Int = 0,
 ) {
     fun can(key: RemoteKey) = connected && key in capabilities.keys
 }
@@ -37,6 +43,7 @@ class TvViewModel(
     private val sockets: LocalSockets = LocalSockets(::pinnedLocalClient),
     private val discoveryHttp: HttpClient = discoveryClient(),
     private val localIp: () -> String? = ::localIpv4Address,
+    private val now: () -> Long = ::epochSeconds,
 ) : ViewModel() {
     private val savedDevice = prefs.lastDevice.split('|').takeIf { it.size == 3 && isLocalIpv4(it[1]) }
     private val mutable = MutableStateFlow(TvUiState(
@@ -130,14 +137,63 @@ class TvViewModel(
             } finally { mutable.update { it.copy(appsLoading = false) } }
         }
     }
-    fun importPlaylist(value: String) = work(UiError.PLAYLIST) {
-        val channels = ParsePlaylistUseCase()(repository.loadPlaylist(value))
-        val urls = channels.map { c -> c.url }.toSet()
-        mutable.update { it.copy(channels = channels, favorites = it.favorites.intersect(urls), recent = it.recent.filter { u -> u in urls }, player = null) }
+    /** Playlist URL (HTTP/HTTPS) or pasted M3U content. */
+    fun importPlaylist(value: String) = importLibrary(UiError.PLAYLIST) { m3u(repository.loadPlaylist(value)) }
+    /** Bytes picked from device storage; null means the file could not be read. */
+    fun importPlaylistFile(bytes: ByteArray?) {
+        if (bytes == null || bytes.size > PLAYLIST_MAX_BYTES) { report(UiError.FILE); return }
+        importLibrary(UiError.PLAYLIST) { m3u(bytes.decodeToString()) }
     }
+    fun importXtream(server: String, username: String, password: String) {
+        val login = XtreamApi.login(server, username, password)
+        if (login == null) { report(UiError.XTREAM_INPUT); return }
+        importLibrary(UiError.XTREAM, { e -> if (e is XtreamAuthException) UiError.XTREAM_AUTH else null }) {
+            repository.loadXtream(login)
+        }
+    }
+    /** Plays one user-entered stream without changing the library. */
+    fun playStream(url: String, title: String) {
+        val channel = singleStream(url, title)
+        if (channel == null) report(UiError.STREAM_URL) else { play(channel); mutable.update { it.copy(imported = it.imported + 1) } }
+    }
+    fun importGuide(url: String) {
+        val trimmed = url.trim()
+        if (!isStreamUrl(trimmed)) { report(UiError.GUIDE); return }
+        guide { repository.loadText(trimmed, GUIDE_MAX_BYTES) }
+    }
+    fun importGuideFile(bytes: ByteArray?) {
+        if (bytes == null || bytes.size > GUIDE_MAX_BYTES) { report(UiError.FILE); return }
+        if (isGzip(bytes)) { report(UiError.GUIDE_COMPRESSED); return }
+        guide { bytes.decodeToString() }
+    }
+    fun useProviderGuide() { state.value.guideUrl.takeIf { it.isNotEmpty() }?.let(::importGuide) }
     fun play(channel: Channel) = mutable.update { it.copy(player = channel, error = null, recent = withRecent(it.recent, channel.url)) }
-    fun zap(step: Int) { val current = state.value.player ?: return; adjacentChannel(state.value.channels, current, step)?.let(::play) }
+    fun zap(step: Int) {
+        val current = state.value.player ?: return
+        if (state.value.channels.none { it.url == current.url }) return
+        adjacentChannel(state.value.channels, current, step)?.let(::play)
+    }
     fun favorite(url: String) = mutable.update { it.copy(favorites = if (url in it.favorites) it.favorites - url else it.favorites + url) }
+
+    private suspend fun m3u(content: String) =
+        IptvLibrary(withContext(Dispatchers.Default) { ParsePlaylistUseCase()(content) }, playlistGuideUrl(content).orEmpty())
+    /** Replaces the session library; the previous guide no longer matches and is dropped. */
+    private fun importLibrary(error: UiError, classify: (Exception) -> UiError? = { null }, load: suspend () -> IptvLibrary) =
+        work(error, classify) {
+            val (channels, guideUrl, truncated) = load()
+            val urls = channels.map { c -> c.url }.toSet()
+            mutable.update { it.copy(channels = channels, favorites = it.favorites.intersect(urls), recent = it.recent.filter { u -> u in urls },
+                player = null, guide = emptyMap(), guideUrl = guideUrl, truncated = truncated, imported = it.imported + 1) }
+        }
+    private fun guide(load: suspend () -> String) {
+        val channels = state.value.channels
+        if (channels.isEmpty()) { report(UiError.GUIDE_NO_CHANNELS); return }
+        work(UiError.GUIDE, { e -> if (e is CompressedGuideException) UiError.GUIDE_COMPRESSED else null }) {
+            val content = load()
+            val guide = withContext(Dispatchers.Default) { ParseGuideUseCase()(content, channels, now()) }
+            mutable.update { it.copy(guide = guide, imported = it.imported + 1) }
+        }
+    }
 
     /** Remote commands run in order without blocking the UI; a failure ends the session honestly. */
     private fun command(action: suspend (RemoteAdapter) -> Unit) {
@@ -152,15 +208,18 @@ class TvViewModel(
             }
         }
     }
-    private fun work(error: UiError, action: suspend () -> Unit) {
+    private fun work(error: UiError, classify: (Exception) -> UiError? = { null }, action: suspend () -> Unit) {
         if (state.value.busy) return
         mutable.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
-            try { action() } catch (e: CancellationException) { throw e } catch (_: Exception) {
+            try { action() } catch (e: CancellationException) { throw e } catch (e: Exception) {
                 if (error == UiError.CONNECTION) disconnect()
-                mutable.update { it.copy(error = error) }
+                mutable.update { it.copy(error = classify(e) ?: error) }
             } finally { mutable.update { it.copy(busy = false) } }
         }
     }
     override fun onCleared() { disconnect(); repository.close(); http.close(); discoveryHttp.close() }
 }
+
+@OptIn(kotlin.time.ExperimentalTime::class)
+internal fun epochSeconds(): Long = kotlin.time.Clock.System.now().epochSeconds

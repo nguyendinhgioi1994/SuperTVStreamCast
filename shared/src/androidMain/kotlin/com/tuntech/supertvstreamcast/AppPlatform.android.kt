@@ -12,6 +12,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable actual fun rememberAppPreferences(): AppPreferences {
     val context=LocalContext.current.applicationContext
@@ -73,4 +76,29 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 }
 @Composable actual fun AppBackHandler(enabled: Boolean,onBack: ()->Unit) {
     androidx.activity.compose.BackHandler(enabled,onBack)
+}
+@Composable actual fun rememberFilePicker(maxBytes: Int,onPicked: (ByteArray?)->Unit): ()->Unit {
+    val context=LocalContext.current.applicationContext
+    val result by rememberUpdatedState(onPicked)
+    val scope=rememberCoroutineScope()
+    val launcher=androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
+    ) {uri -> if(uri!=null) scope.launch {
+        val bytes=withContext(Dispatchers.IO) {
+            try {context.contentResolver.openInputStream(uri)?.use {stream -> readAtMost(stream,maxBytes+1)}}
+            catch (_: java.io.IOException) {null} catch (_: SecurityException) {null}
+        }
+        result(bytes)
+    }}
+    return remember(launcher) {{launcher.launch(arrayOf("*/*"))}}
+}
+private fun readAtMost(stream: java.io.InputStream,limit: Int): ByteArray {
+    val out=java.io.ByteArrayOutputStream()
+    val buffer=ByteArray(64*1024)
+    while(out.size()<limit) {
+        val read=stream.read(buffer,0,minOf(buffer.size,limit-out.size()))
+        if(read<0) break
+        out.write(buffer,0,read)
+    }
+    return out.toByteArray()
 }

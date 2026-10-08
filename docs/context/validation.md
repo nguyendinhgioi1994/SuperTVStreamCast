@@ -47,3 +47,13 @@ What was verified, using a scratch Kotlin/JVM project that compiles the reposito
 - EN/VI string keys match (145 strings + 2 plurals); every `Res.string` reference resolves.
 
 Not verified: Compose UI files (RemoteScreen, TvScaffold, PlaylistScreen, CinemaComponents, App) and iOS actuals (`LocalNetwork.ios.kt`) were reviewed manually only. Run the standard build commands from CLAUDE.md before merging. No Samsung, LG or Sony TV was available: pairing prompts, token reuse, LG unsigned-manifest registration, pointer socket, TLS pinning against real TV certificates, scan timing and app launch remain hardware gates.
+
+## IPTV sources, EPG and usage guide
+
+Same environment limit: Google Maven is blocked (403), so `:androidApp:assembleDebug`, `:shared:testAndroidHostTest` and iOS compile/link were **not run**.
+
+- Scratch Kotlin 2.4.20 / Ktor 3.6.0 JVM project compiling `domain/`, `data/`, `net/` (+ Android actual), `ui/TvViewModel.kt` (ViewModel stub) and running commonTest: 38 tests, 0 failures (new `IptvSourcesTest`: 11 tests — Xtream server normalization, credential encoding/redaction, auth/status/format checks, category mapping/dedupe/cap, repository call order and rejected account, `tvg-id`/header guide URL, single-stream validation, XMLTV time offsets, guide matching by id and name with entities/CDATA/window, gzip/oversize rejection).
+- A Compose Desktop scratch build of the UI also failed on androidx artifacts from Google Maven, so `PlaylistScreen.kt`, `TvScaffold.kt`, `App.kt`, the Android/iOS file pickers and new icons were reviewed manually only.
+- EN/VI string resources match (204 strings + 4 plurals); every `Res.string`/`Res.plurals` reference resolves.
+
+Not verified: real Xtream panels, real XMLTV files, the system document pickers, iOS compilation and any runtime UI.
