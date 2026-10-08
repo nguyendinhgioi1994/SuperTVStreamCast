@@ -3,6 +3,8 @@ package com.tuntech.supertvstreamcast.ui
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,7 +25,8 @@ import supertvstreamcast.shared.generated.resources.*
 @Composable internal fun PlaylistScaffold(state: TvUiState,onImport: (String)->Unit,onFavorite: (String)->Unit,onPlay: (Channel)->Unit) {
     var input by remember {mutableStateOf("")}
     var search by rememberSaveable {mutableStateOf("")}
-    var favoritesOnly by rememberSaveable {mutableStateOf(false)}
+    var mode by rememberSaveable {mutableStateOf(0)} // 0 all, 1 favorites, 2 recent
+    var group by rememberSaveable {mutableStateOf("")}
     var importOpen by rememberSaveable {mutableStateOf(false)}
     var submitted by remember {mutableStateOf(false)}
     LaunchedEffect(state.busy,state.error,state.channels) {
@@ -32,8 +35,11 @@ import supertvstreamcast.shared.generated.resources.*
             submitted=false
         }
     }
-    val visible=remember(state.channels,state.favorites,search,favoritesOnly) {
-        state.channels.filter {(search.isBlank()||it.title.contains(search,true)||it.group.contains(search,true))&&(!favoritesOnly||it.url in state.favorites)}
+    val groups=remember(state.channels) {channelGroups(state.channels)}
+    val visible=remember(state.channels,state.favorites,state.recent,search,mode,group) {
+        val source=if(mode==2) state.channels.associateBy{it.url}.let{byUrl -> state.recent.mapNotNull{byUrl[it]}} else state.channels
+        source.filter {(search.isBlank()||it.title.contains(search,true)||it.group.contains(search,true))&&
+            (mode!=1||it.url in state.favorites)&&(group.isEmpty()||it.group==group)}
     }
     LazyColumn(Modifier.fillMaxSize().padding(horizontal=TvDimens.Space),verticalArrangement=Arrangement.spacedBy(18.dp),contentPadding=PaddingValues(top=12.dp,bottom=20.dp)) {
         item {
@@ -72,8 +78,15 @@ import supertvstreamcast.shared.generated.resources.*
             }
             item {
                 Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TvColors.Surface).padding(4.dp),horizontalArrangement=Arrangement.spacedBy(4.dp)) {
-                    LibraryFilter(stringResource(Res.string.all_channels),!favoritesOnly,Modifier.weight(1f)){favoritesOnly=false}
-                    LibraryFilter(stringResource(Res.string.favorites),favoritesOnly,Modifier.weight(1f)){favoritesOnly=true}
+                    LibraryFilter(stringResource(Res.string.all_channels),mode==0,Modifier.weight(1f)){mode=0}
+                    LibraryFilter(stringResource(Res.string.favorites),mode==1,Modifier.weight(1f)){mode=1}
+                    LibraryFilter(stringResource(Res.string.recent),mode==2,Modifier.weight(1f)){mode=2}
+                }
+            }
+            if(groups.isNotEmpty()) item {
+                LazyRow(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                    item {GroupChip(stringResource(Res.string.all_groups),group.isEmpty()){group=""}}
+                    items(groups,key={it}) {name -> GroupChip(name,group==name){group=name}}
                 }
             }
             if(visible.isEmpty()) item {CinemaPanel(Modifier.fillMaxWidth()) {Text(stringResource(Res.string.no_results),style=MaterialTheme.typography.bodyLarge,color=TvColors.Muted)}}
@@ -91,6 +104,13 @@ import supertvstreamcast.shared.generated.resources.*
             if(state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
         }},confirmButton={TextButton(onClick={submitted=true;onImport(input)},enabled=input.isNotBlank()&&!state.busy){Text(stringResource(if(state.busy) Res.string.working else Res.string.import_playlist))}},
         dismissButton={TextButton(onClick={importOpen=false},enabled=!state.busy){Text(stringResource(Res.string.back))}})
+}
+@Composable private fun GroupChip(text: String,selected: Boolean,onClick: ()->Unit) {
+    Box(Modifier.heightIn(min=40.dp).clip(RoundedCornerShape(100.dp)).background(if(selected) TvColors.Coral.copy(alpha=0.14f) else TvColors.Surface)
+        .border(1.dp,if(selected) TvColors.Coral.copy(alpha=0.5f) else TvColors.Outline,RoundedCornerShape(100.dp))
+        .selectable(selected=selected,role=Role.RadioButton,onClick=onClick).padding(horizontal=14.dp,vertical=10.dp),contentAlignment=Alignment.Center) {
+        Text(text,style=MaterialTheme.typography.labelLarge,color=if(selected) TvColors.Coral else TvColors.Muted,maxLines=1,overflow=TextOverflow.Ellipsis)
+    }
 }
 @Composable private fun LibraryStat(label: String,feature: Feature,accent: androidx.compose.ui.graphics.Color,modifier: Modifier) {
     Row(modifier.clip(RoundedCornerShape(18.dp)).background(TvColors.Surface).padding(14.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {

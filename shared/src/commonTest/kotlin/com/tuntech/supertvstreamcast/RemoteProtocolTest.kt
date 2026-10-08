@@ -84,4 +84,10 @@ class RemoteProtocolTest {
         val channels=ParsePlaylistUseCase()("#EXTM3U\n#EXTINF:-1,Live\n#EXTGRP:Movies\nhttps://example.com/live\n")
         assertEquals("Movies",channels.single().group)
     }
+    @Test fun swipesMapToDominantAxisAndIgnoreTaps() {
+        assertEquals(RemoteKey.RIGHT,swipeDirection(80f,10f,40f))
+        assertEquals(RemoteKey.UP,swipeDirection(-5f,-90f,40f))
+        assertEquals(RemoteKey.LEFT,swipeDirection(-60f,30f,40f))
+        assertNull(swipeDirection(10f,10f,40f))
+    }
 }

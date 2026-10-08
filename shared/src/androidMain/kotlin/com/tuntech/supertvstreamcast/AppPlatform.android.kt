@@ -27,6 +27,9 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
             override var goal: String
                 get()=prefs.getString("goal","").orEmpty()
                 set(value){prefs.edit().putString("goal",value).apply()}
+            override var lastDevice: String
+                get()=prefs.getString("last_device","").orEmpty()
+                set(value){prefs.edit().putString("last_device",value).apply()}
         }
     }
 }

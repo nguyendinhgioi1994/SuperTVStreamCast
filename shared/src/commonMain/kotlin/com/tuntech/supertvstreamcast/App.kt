@@ -14,22 +14,22 @@ import com.tuntech.supertvstreamcast.ui.*
     val model = viewModel { TvViewModel(preferences) }
     val state by model.state.collectAsStateWithLifecycle()
     val share = rememberScreenSharingAction()
-    val requestLan=rememberLanAccessRequest()
-    AppBackHandler(state.step in 1..2 || state.player!=null || state.tab!=Feature.HOME || state.connectionOpen,model::back)
-    TvTheme {
-        TvScaffold(state, model::next, model::back, model::brand, model::goal, model::tab,
-            model::connection, {ip,psk -> requestLan {granted -> if(granted) model.connect(ip,psk) else model.report(UiError.PERMISSION)}}, model::disconnect, {key -> requestLan {granted -> if(granted) model.send(key) else model.report(UiError.PERMISSION)}},
-            {input ->
-                val host=input.trim().substringAfter("://").substringBefore('/').substringBefore(':')
-                if(input.trim().startsWith("https://") && isLocalIpv4(host)) requestLan {granted -> if(granted) model.importPlaylist(input) else model.report(UiError.PERMISSION)}
-                else model.importPlaylist(input)
-            }, model::favorite, {channel ->
-                val host=channel.url.substringAfter("://").substringBefore('/').substringBefore(':')
-                if(isLocalIpv4(host)) requestLan {granted -> if(granted) model.play(channel) else model.report(UiError.PERMISSION)}
-                else model.play(channel)
-            },
-            onPlayerError = { model.report(UiError.PLAYER) },
-            onShare = share?.let { action -> { if (!action()) model.report(UiError.MIRROR) } },
-        )
-    }
+    val requestLan = rememberLanAccessRequest()
+    /** Every LAN action asks for local-network access at the point of use. */
+    val lan: (() -> Unit) -> Unit = { action -> requestLan { granted -> if (granted) action() else model.report(UiError.PERMISSION) } }
+    fun isLanUrl(url: String) = isLocalIpv4(url.trim().substringAfter("://").substringBefore('/').substringBefore(':'))
+    AppBackHandler(state.step in 1..2 || state.player != null || state.tab != Feature.HOME || state.connectionOpen, model::back)
+    val actions = TvActions(
+        next = model::next, back = model::back, brand = model::brand, goal = model::goal, tab = model::tab,
+        connection = model::connection, connect = { ip, psk -> lan { model.connect(ip, psk) } }, disconnect = model::disconnect,
+        scan = { lan(model::scan) }, pick = { device -> lan { model.pick(device) } },
+        key = model::send, text = model::sendText, move = model::move, click = model::click,
+        loadApps = model::loadApps, launch = model::launch,
+        importPlaylist = { input -> if (input.trim().startsWith("https://") && isLanUrl(input)) lan { model.importPlaylist(input) } else model.importPlaylist(input) },
+        favorite = model::favorite,
+        play = { channel -> if (isLanUrl(channel.url)) lan { model.play(channel) } else model.play(channel) },
+        zap = model::zap, playerError = { model.report(UiError.PLAYER) },
+        share = share?.let { action -> { if (!action()) model.report(UiError.MIRROR) } },
+    )
+    TvTheme { TvScaffold(state, actions) }
 }

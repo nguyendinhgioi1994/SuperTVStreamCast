@@ -94,3 +94,9 @@ fun adjacentChannel(channels: List<Channel>, current: Channel, step: Int): Chann
 }
 /** Most-recent-first history without duplicates, bounded. */
 fun withRecent(recent: List<String>, url: String, limit: Int = 12): List<String> = (listOf(url) + recent.filter { it != url }).take(limit)
+/** Touchpad swipe → arrow key along the dominant axis; short movements are ignored (taps select). */
+fun swipeDirection(dx: Float, dy: Float, threshold: Float): RemoteKey? = when {
+    dx * dx + dy * dy < threshold * threshold -> null
+    kotlin.math.abs(dx) >= kotlin.math.abs(dy) -> if (dx > 0) RemoteKey.RIGHT else RemoteKey.LEFT
+    else -> if (dy > 0) RemoteKey.DOWN else RemoteKey.UP
+}

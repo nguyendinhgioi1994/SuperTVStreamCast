@@ -73,10 +73,11 @@ Paywall và quảng cáo chưa nằm trong bản foundation. Không dựng màn 
 - Screen sharing: mở Android Cast settings; iOS hướng dẫn Control Center/AirPlay. Đây là tích hợp luồng hệ thống, chưa phải streaming engine riêng.
 - Gate: BRAVIA model/firmware thật, PSK đúng/sai, mất Wi-Fi, TV sleep; playlist thật HLS/live; Android Cast receiver/AirPlay thật; codec và lỗi playback.
 
-### GĐ3 — Remote đa hãng (chưa triển khai)
-- Tách interface RemoteAdapter; Sony adapter hiện tại chuyển vào registry.
-- Samsung Tizen: discovery, pairing được người dùng chấp thuận trên TV, token session; WSS/cert theo mô hình được hỗ trợ. Không globally bỏ TLS verification.
-- LG webOS: ConnectSDK/module được duy trì, pairing, pointer/remote; kiểm tra firmware 2025/2026.
+### GĐ3 — Remote đa hãng (đã triển khai code cho Sony/Samsung/LG + quét LAN; cần nghiệm thu TV thật)
+- ✅ Interface RemoteAdapter + `createAdapter`; Sony, Samsung Tizen, LG webOS adapters; capability từ phản hồi TV. Xem `docs/context/remote-discovery-iptv.md`.
+- ✅ Quét /24 unicast theo thao tác người dùng (Samsung API, Sony interface info, LG SSAP). Còn lại: SSDP/Bonjour, Wake-on-LAN, lưu token an toàn (Keystore/Keychain) thay vì chỉ trong phiên.
+- Samsung Tizen: ✅ pairing chấp thuận trên TV, token trong phiên, WSS pin chứng chỉ theo host (TOFU). Còn: test model 2016–2026, Wake-on-LAN.
+- LG webOS: ✅ SSAP register (PROMPT, manifest không chữ ký), pointer socket, IME, launch points. Cần xác minh firmware 2025/2026 có chấp nhận manifest không ký; nếu không, cân nhắc module được duy trì.
 - Android/Google TV: Remote v2, certificate/pairing; Cast không thay thế giao thức điều khiển TV.
 - TCL/Hisense phân theo hệ điều hành thật (Google TV / Roku / VIDAA), không chọn giao thức chỉ theo nhãn hãng.
 - Discovery: Android NSD/SSDP, iOS Bonjour/SSDP phù hợp entitlement; manual IP fallback; chỉ scan LAN sau thao tác người dùng.
@@ -106,12 +107,17 @@ Paywall và quảng cáo chưa nằm trong bản foundation. Không dựng màn 
 |---|---|---|---|
 | Onboarding, Home, chọn hãng | Implemented | Implemented | EN/VI; chưa có ad/paywall |
 | Sony BRAVIA Remote | Implemented | Implemented | Manual IP + PSK; model hỗ trợ IP control; chưa test TV thật |
-| Samsung/LG/Google TV remote | Roadmap | Roadmap | Chọn hãng chỉ cá nhân hóa, không kết nối giả |
+| Samsung Tizen / LG webOS remote | Implemented | Implemented (chưa compile iOS) | Pairing trên TV; token chỉ trong phiên; chưa test TV thật |
+| Google TV / Android TV, Roku, VIDAA remote | Roadmap | Roadmap | Chọn hãng chỉ cá nhân hóa, không kết nối giả |
+| Touchpad, bàn phím số, nhập chữ, app TV | Implemented | Implemented | Theo capability từng adapter |
 | Screen sharing hệ thống | Cast settings | AirPlay hướng dẫn | Receiver/system quyết định hỗ trợ; không báo mirroring active |
-| IPTV M3U import và native player | Implemented | Implemented | Xem trên điện thoại; không bundled content; library session-only |
+| IPTV M3U import và native player | Implemented | Implemented | Nhóm, gần đây, chuyển kênh trước/sau; library session-only |
 | Cast IPTV sang TV | Roadmap | Roadmap | Cần SDK/receiver |
-| Auto discovery / secure pairing store | Roadmap | Roadmap | Không scan hoặc lưu khóa ngầm |
+| Quét LAN theo yêu cầu | Implemented | Implemented | /24 unicast; chưa SSDP/mDNS |
+| Secure pairing store | Roadmap | Roadmap | Không lưu khóa ngầm; token chỉ trong phiên |
 
 ## Cách làm từng bước tiếp theo
 
-Bắt đầu GĐ3 với Samsung hoặc LG tùy TV kiểm thử có sẵn; chọn đúng model/OS, tạo adapter, kiểm thử pairing trước khi quảng bá. Làm discovery sau khi ít nhất hai adapter có capability model chung. Kế tiếp media casting trước full mirroring để giảm rủi ro receiver/codec. Không chạy ads acquisition cho hãng chưa nghiệm thu.
+1. Chạy build Android/iOS đầy đủ (môi trường hiện tại chặn Google Maven) và sửa lỗi compile UI/iOS nếu có.
+2. Nghiệm thu Samsung/LG/Sony trên TV thật theo gate GĐ3; nếu LG từ chối manifest không ký thì đổi chiến lược trước khi quảng bá.
+3. Google TV Remote v2 (TLS client cert + pairing code), Wake-on-LAN, lưu token bằng Keystore/Keychain. Kế tiếp media casting trước full mirroring để giảm rủi ro receiver/codec. Không chạy ads acquisition cho hãng chưa nghiệm thu.

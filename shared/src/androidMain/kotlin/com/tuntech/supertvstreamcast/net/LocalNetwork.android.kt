@@ -5,6 +5,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.websocket.WebSockets
+import okhttp3.Dispatcher
 import java.io.IOException
 import java.net.Inet4Address
 import java.net.NetworkInterface
@@ -37,6 +38,8 @@ actual fun discoveryClient(): HttpClient = HttpClient(OkHttp) {
     followRedirects = false
     install(WebSockets)
     install(HttpTimeout) { connectTimeoutMillis = 1_500; requestTimeoutMillis = 2_500; socketTimeoutMillis = 2_000 }
+    // A scan probes ~250 hosts × 3 protocols; OkHttp's default 64-call limit would queue probes past their timeout.
+    engine { config { dispatcher(Dispatcher().apply { maxRequests = 192; maxRequestsPerHost = 4 }) } }
 }
 actual fun localIpv4Address(): String? {
     val candidates = runCatching { NetworkInterface.getNetworkInterfaces().toList() }.getOrDefault(emptyList())

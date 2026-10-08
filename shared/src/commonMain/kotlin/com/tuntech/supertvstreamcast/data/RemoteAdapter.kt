@@ -44,6 +44,9 @@ class LocalSockets(private val clientFor: (String) -> HttpClient) {
     fun close() { clients.values.forEach { it.close() }; clients.clear() }
 }
 
+/** Plain (non-TLS) WebSocket opener for discovery probes. */
+fun plainSockets(client: HttpClient): SocketOpener = { _, url -> KtorTextSocket(client.webSocketSession(url)) }
+
 fun createAdapter(brand: TvBrand, http: HttpClient, sockets: SocketOpener): RemoteAdapter? = when (brand) {
     TvBrand.SONY -> SonyBraviaAdapter(http)
     TvBrand.SAMSUNG -> SamsungTizenAdapter(http, sockets)

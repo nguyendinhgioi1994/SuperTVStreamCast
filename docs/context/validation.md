@@ -35,3 +35,15 @@ See `docs/plans/ROADMAP.md` for ownership and sequencing.
 - Shared domain/repository code was unchanged in this UI pass; existing 12-test result remains the earlier logic verification. New work was verified by compilation and device interactions, not redundant implementation tests.
 - Android system bars now explicitly use light icons on the dark theme. Two new original artwork assets are stored as WebP. EN/VI resources match (105 strings + 2 plurals).
 - iOS runtime/UI and TV hardware acceptance remain outside this UI verification.
+
+## Multi-brand remote, discovery and IPTV v2
+
+Environment limits on 08/10/2026: the sandbox network policy blocks Google Maven and `dl.google.com`, so no Android SDK, AGP or Compose runtime could be downloaded. `./gradlew :androidApp:assembleDebug :shared:testAndroidHostTest` and iOS compile/link (Linux host) were **not run** for this change.
+
+What was verified, using a scratch Kotlin/JVM project that compiles the repository sources directly from Maven Central dependencies:
+
+- `domain/`, `data/`, `net/` (common expect + the Android/OkHttp actual) and `ui/TvViewModel.kt` (against a minimal ViewModel stub) compile.
+- All commonTest suites pass on JVM: 28 tests, 0 failures (new: 10 protocol/domain tests, 7 adapter/discovery tests with scripted sockets and Ktor MockEngine; Sony repository tests adapted to `SonyBraviaAdapter`).
+- EN/VI string keys match (145 strings + 2 plurals); every `Res.string` reference resolves.
+
+Not verified: Compose UI files (RemoteScreen, TvScaffold, PlaylistScreen, CinemaComponents, App) and iOS actuals (`LocalNetwork.ios.kt`) were reviewed manually only. Run the standard build commands from CLAUDE.md before merging. No Samsung, LG or Sony TV was available: pairing prompts, token reuse, LG unsigned-manifest registration, pointer socket, TLS pinning against real TV certificates, scan timing and app launch remain hardware gates.
