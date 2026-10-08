@@ -1,5 +1,6 @@
 package com.tuntech.supertvstreamcast
 
+import com.tuntech.supertvstreamcast.data.SonyBraviaAdapter
 import com.tuntech.supertvstreamcast.data.TvRepository
 import com.tuntech.supertvstreamcast.domain.RemoteKey
 import io.ktor.client.HttpClient
@@ -12,10 +13,13 @@ import kotlin.test.*
 class TvRepositoryTest {
     @Test fun authenticatesAndUsesCodesReturnedByTv() = runTest {
         var calls=0
-        val repository=TvRepository(HttpClient(MockEngine {request ->
+        val repository=SonyBraviaAdapter(HttpClient(MockEngine {request ->
             calls++
-            assertEquals("session-secret",request.headers["X-Auth-PSK"])
-            if(calls==1) {
+            if(calls!=2) assertEquals("session-secret",request.headers["X-Auth-PSK"])
+            if(calls==2) {
+                assertEquals(null,request.headers["X-Auth-PSK"])
+                respond("""{"result":[{"productCategory":"tv","productName":"BRAVIA","modelName":"XR-55A80L"}]}""",HttpStatusCode.OK)
+            } else if(calls==1) {
                 assertEquals("/sony/system",request.url.encodedPath)
                 respond("""{"result":[{"type":"IRCC"},[{"name":"Confirm","value":"AAAAAQAAAAEAAABlAw=="}]]}""",HttpStatusCode.OK)
             } else {
@@ -26,26 +30,26 @@ class TvRepositoryTest {
             }
         }))
         try {
-            repository.connect("192.168.1.2","session-secret")
+            val session=repository.connect("192.168.1.2","session-secret")
+            assertEquals("XR-55A80L",session.device.model)
+            assertEquals(setOf(RemoteKey.OK),session.capabilities.keys)
             repository.send(RemoteKey.OK)
-            assertEquals(2,calls)
+            assertEquals(3,calls)
+            assertFailsWith<IllegalStateException>{repository.send(RemoteKey.HOME)}
             repository.disconnect()
             assertFailsWith<IllegalStateException>{repository.send(RemoteKey.OK)}
-            assertEquals(2,calls)
-        } finally {repository.close()}
+            assertEquals(3,calls)
+        } finally {repository.disconnect()}
     }
     @Test fun rejectedAuthenticationNeverCreatesASession() = runTest {
-        val repository=TvRepository(HttpClient(MockEngine {respond("",HttpStatusCode.Forbidden)}))
-        try {
-            assertFailsWith<IllegalStateException>{repository.connect("192.168.1.2","wrong")}
-            assertFailsWith<IllegalStateException>{repository.send(RemoteKey.OK)}
-        } finally {repository.close()}
+        val repository=SonyBraviaAdapter(HttpClient(MockEngine {respond("",HttpStatusCode.Forbidden)}))
+        assertFailsWith<IllegalStateException>{repository.connect("192.168.1.2","wrong")}
+        assertFailsWith<IllegalStateException>{repository.send(RemoteKey.OK)}
     }
     @Test fun apiErrorsAndMissingCommandCapabilitiesFailConnection() = runTest {
         for(body in listOf("""{"error":[403,"Forbidden"]}""","""{"result":[{},[]]}""")) {
-            val repository=TvRepository(HttpClient(MockEngine {respond(body,HttpStatusCode.OK)}))
-            try {assertFailsWith<IllegalStateException>{repository.connect("192.168.1.2","key")}}
-            finally {repository.close()}
+            val repository=SonyBraviaAdapter(HttpClient(MockEngine {respond(body,HttpStatusCode.OK)}))
+            assertFailsWith<IllegalStateException>{repository.connect("192.168.1.2","key")}
         }
     }
     @Test fun playlistRedirectsAndOversizedResponsesAreRejected() = runTest {

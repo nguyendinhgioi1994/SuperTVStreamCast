@@ -25,6 +25,9 @@ import kotlinx.coroutines.delay
         override var goal: String
             get()=prefs.stringForKey("tv_space_goal").orEmpty()
             set(value){prefs.setObject(value,"tv_space_goal")}
+        override var lastDevice: String
+            get()=prefs.stringForKey("tv_space_last_device").orEmpty()
+            set(value){prefs.setObject(value,"tv_space_last_device")}
     }
 }
 @Composable actual fun rememberScreenSharingAction(): (() -> Boolean)? = null

@@ -36,7 +36,8 @@ internal fun UiError.label() = when(this) {
     UiError.CONNECTION -> Res.string.connection_failed; UiError.COMMAND -> Res.string.command_failed
     UiError.PLAYLIST -> Res.string.playlist_error; UiError.INVALID_IP -> Res.string.invalid_ip
     UiError.PERMISSION -> Res.string.lan_denied; UiError.PLAYER -> Res.string.player_error
-    UiError.MIRROR -> Res.string.mirror_unavailable
+    UiError.MIRROR -> Res.string.mirror_unavailable; UiError.NO_WIFI -> Res.string.no_wifi
+    UiError.APPS -> Res.string.apps_error
 }
 @Composable internal fun PrimaryCta(text: String, enabled: Boolean=true, glyph: Glyph?=Glyph.RIGHT, onClick: ()->Unit) {
     Button(onClick=onClick,enabled=enabled,shape=RoundedCornerShape(18.dp),
@@ -132,10 +133,12 @@ internal fun UiError.label() = when(this) {
         verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
         IconBubble(Feature.MIRROR,size=44.dp)
         Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)) {
-            Text(state.brand.title,style=MaterialTheme.typography.titleMedium)
+            val device=state.device?.takeIf{state.connected}
+            Text(device?.name ?: state.brand.title,style=MaterialTheme.typography.titleMedium,maxLines=1,overflow=TextOverflow.Ellipsis)
             Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)) {
                 Box(Modifier.size(5.dp).background(if(state.connected) TvColors.Cyan else TvColors.Coral,CircleShape))
-                Text(stringResource(if(state.connected) Res.string.connected else Res.string.not_connected),style=MaterialTheme.typography.bodySmall,color=TvColors.Muted)
+                Text(if(device!=null) listOf(stringResource(Res.string.connected),device.model).filter{it.isNotBlank()}.joinToString(" · ") else stringResource(Res.string.not_connected),
+                    style=MaterialTheme.typography.bodySmall,color=TvColors.Muted,maxLines=1,overflow=TextOverflow.Ellipsis)
             }
         }
         RoundAction(stringResource(if(state.connected) Res.string.disconnect else Res.string.connect_tv),if(state.connected) Glyph.CLOSE else Glyph.RIGHT,

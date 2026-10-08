@@ -44,7 +44,8 @@ import com.tuntech.supertvstreamcast.theme.TvColors
     }
 }
 
-enum class Glyph { UP, DOWN, LEFT, RIGHT, POWER, BACK, PLUS, MINUS, MUTE, CHECK, ADD, SEARCH, PLAY, HEART, LOCK, WIFI, CLOSE, MENU }
+enum class Glyph { UP, DOWN, LEFT, RIGHT, POWER, BACK, PLUS, MINUS, MUTE, CHECK, ADD, SEARCH, PLAY, HEART, LOCK, WIFI, CLOSE, MENU,
+    PAUSE, STOP, REWIND, FAST_FORWARD, INPUT, KEYPAD, KEYBOARD, TOUCH }
 @Composable fun GlyphIcon(glyph: Glyph, modifier: Modifier=Modifier, color: Color=TvColors.Text) {
     Canvas(modifier.size(24.dp)) {
         val u=size.width/24f
@@ -71,6 +72,14 @@ enum class Glyph { UP, DOWN, LEFT, RIGHT, POWER, BACK, PLUS, MINUS, MUTE, CHECK,
             Glyph.LOCK -> {drawRoundRect(color,p(5f,10f),Size(14*u,11*u),CornerRadius(2*u),style=Stroke(1.8f*u));drawArc(color,180f,180f,false,p(8f,3f),Size(8*u,12*u),style=Stroke(1.8f*u));drawCircle(color,u,p(12f,15f))}
             Glyph.WIFI -> {for(i in 0..2){val r=(9f-i*3f)*u;drawArc(color,225f,90f,false,Offset(12*u-r,21*u-r),Size(2*r,2*r),style=Stroke(1.8f*u,cap=androidx.compose.ui.graphics.StrokeCap.Round))};drawCircle(color,u,p(12f,20f))}
             Glyph.MENU -> {line(4f,6f,20f,6f);line(4f,12f,20f,12f);line(4f,18f,20f,18f)}
+            Glyph.PAUSE -> {line(8f,5f,8f,19f);line(16f,5f,16f,19f)}
+            Glyph.STOP -> drawRoundRect(color,p(6f,6f),Size(12*u,12*u),CornerRadius(2*u))
+            Glyph.REWIND -> {path(listOf(p(12f,6f),p(5f,12f),p(12f,18f)));path(listOf(p(19f,6f),p(12f,12f),p(19f,18f)))}
+            Glyph.FAST_FORWARD -> {path(listOf(p(5f,6f),p(12f,12f),p(5f,18f)));path(listOf(p(12f,6f),p(19f,12f),p(12f,18f)))}
+            Glyph.INPUT -> {drawRoundRect(color,p(3f,5f),Size(18*u,13*u),CornerRadius(2*u),style=Stroke(1.8f*u));line(8f,21f,16f,21f);line(7f,11.5f,14f,11.5f);path(listOf(p(11f,8.5f),p(14f,11.5f),p(11f,14.5f)))}
+            Glyph.KEYPAD -> {for(row in 0..2) for(col in 0..2) drawCircle(color,1.4f*u,p(6f+col*6f,6f+row*6f))}
+            Glyph.KEYBOARD -> {drawRoundRect(color,p(2f,6f),Size(20*u,12*u),CornerRadius(2*u),style=Stroke(1.8f*u));for(i in 0..3){drawCircle(color,0.9f*u,p(6f+i*4f,10f))};line(8f,14.5f,16f,14.5f)}
+            Glyph.TOUCH -> {drawCircle(color,3f*u,p(12f,12f));drawCircle(color,8f*u,p(12f,12f),style=Stroke(1.5f*u))}
             Glyph.HEART -> {val path=androidx.compose.ui.graphics.Path().apply{moveTo(12*u,20*u);cubicTo(0f,12*u,3*u,1*u,12*u,7*u);cubicTo(21*u,1*u,24*u,12*u,12*u,20*u);close()};drawPath(path,color,style=Stroke(1.8f*u))}
         }
     }

@@ -121,56 +121,6 @@ import supertvstreamcast.shared.generated.resources.*
         if(state.step>0) TextButton(onClick=onBack,modifier=Modifier.align(Alignment.CenterHorizontally)){Text(stringResource(Res.string.back),color=TvColors.Muted)}
     }
 }
-@Composable internal fun RemoteContent(state: TvUiState,onConnect: ()->Unit,onDisconnect: ()->Unit,onKey: (RemoteKey)->Unit) {
-    Heading(stringResource(Res.string.remote),stringResource(Res.string.remote_caption))
-    ConnectionCard(state,onConnect,onDisconnect)
-    val enabled=state.connected&&!state.busy
-    CinemaPanel(Modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
-            Text(state.brand.title,style=MaterialTheme.typography.labelLarge,color=TvColors.Muted)
-            RoundAction(stringResource(Res.string.power),Glyph.POWER,enabled=enabled,accent=TvColors.Coral){onKey(RemoteKey.POWER)}
-        }
-        BoxWithConstraints(Modifier.fillMaxWidth(),contentAlignment=Alignment.Center) {
-            val size=minOf(maxWidth,248.dp)
-            Box(Modifier.size(size).clip(CircleShape).background(TvColors.RemoteGradient).border(1.dp,TvColors.Outline,CircleShape)) {
-                Canvas(Modifier.matchParentSize()) {
-                    drawCircle(TvColors.Cyan.copy(alpha=0.08f),radius=this.size.minDimension/2-12.dp.toPx(),style=Stroke(1.dp.toPx()))
-                    drawCircle(TvColors.Background.copy(alpha=0.35f),radius=this.size.minDimension/2-62.dp.toPx(),style=Stroke(1.dp.toPx()))
-                }
-                DirectionKey(RemoteKey.UP,Glyph.UP,stringResource(Res.string.up),enabled,Modifier.align(Alignment.TopCenter).padding(top=10.dp),onKey)
-                DirectionKey(RemoteKey.DOWN,Glyph.DOWN,stringResource(Res.string.down),enabled,Modifier.align(Alignment.BottomCenter).padding(bottom=10.dp),onKey)
-                DirectionKey(RemoteKey.LEFT,Glyph.LEFT,stringResource(Res.string.left),enabled,Modifier.align(Alignment.CenterStart).padding(start=10.dp),onKey)
-                DirectionKey(RemoteKey.RIGHT,Glyph.RIGHT,stringResource(Res.string.right),enabled,Modifier.align(Alignment.CenterEnd).padding(end=10.dp),onKey)
-                Button(onClick={onKey(RemoteKey.OK)},enabled=enabled,contentPadding=PaddingValues(0.dp),shape=CircleShape,
-                    colors=ButtonDefaults.buttonColors(containerColor=Color.Transparent,disabledContainerColor=TvColors.Raised),modifier=Modifier.align(Alignment.Center).size(78.dp)) {
-                    Box(Modifier.fillMaxSize().background(if(enabled) TvColors.Gradient else TvColors.SurfaceGradient),contentAlignment=Alignment.Center) {
-                        Text(stringResource(Res.string.ok),style=MaterialTheme.typography.titleLarge,color=if(enabled) TvColors.Background else TvColors.Muted)
-                    }
-                }
-            }
-        }
-        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceEvenly) {
-            RoundAction(stringResource(Res.string.back),Glyph.BACK,enabled=enabled){onKey(RemoteKey.BACK)}
-            val homeLabel=stringResource(Res.string.tv_home)
-            IconButton(onClick={onKey(RemoteKey.HOME)},enabled=enabled,modifier=Modifier.size(52.dp).clip(CircleShape).background(TvColors.Raised).semantics{contentDescription=homeLabel}) {
-                FeatureIcon(Feature.HOME,Modifier.size(24.dp),if(enabled) TvColors.Text else TvColors.Muted.copy(alpha=0.45f))
-            }
-            RoundAction(stringResource(Res.string.mute),Glyph.MUTE,enabled=enabled){onKey(RemoteKey.MUTE)}
-        }
-        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(TvColors.Background.copy(alpha=0.6f)).padding(8.dp),
-            verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-            RoundAction(stringResource(Res.string.volume_down),Glyph.MINUS,enabled=enabled){onKey(RemoteKey.VOLUME_DOWN)}
-            Text(stringResource(Res.string.volume),Modifier.weight(1f),style=MaterialTheme.typography.titleSmall,color=TvColors.Muted,textAlign=androidx.compose.ui.text.style.TextAlign.Center)
-            RoundAction(stringResource(Res.string.volume_up),Glyph.PLUS,enabled=enabled){onKey(RemoteKey.VOLUME_UP)}
-        }
-    }
-    if(!state.connected) Text(stringResource(Res.string.connect_first),Modifier.fillMaxWidth(),style=MaterialTheme.typography.bodySmall,color=TvColors.Muted,textAlign=androidx.compose.ui.text.style.TextAlign.Center)
-}
-@Composable private fun DirectionKey(key: RemoteKey,glyph: Glyph,label: String,enabled: Boolean,modifier: Modifier,onKey: (RemoteKey)->Unit) {
-    IconButton(onClick={onKey(key)},enabled=enabled,modifier=modifier.size(58.dp).semantics{contentDescription=label}) {
-        GlyphIcon(glyph,Modifier.size(28.dp),if(enabled) TvColors.Text else TvColors.Muted.copy(alpha=0.45f))
-    }
-}
 @Composable internal fun MirrorContent(onShare: (() -> Unit)?) {
     Heading(stringResource(Res.string.mirror_title))
     Artwork(Modifier.height(200.dp),Res.drawable.art_mirror)
