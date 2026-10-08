@@ -14,7 +14,8 @@ enum class RemoteKey {
         val digits = listOf(NUM_1, NUM_2, NUM_3, NUM_4, NUM_5, NUM_6, NUM_7, NUM_8, NUM_9, NUM_0)
     }
 }
-data class Channel(val url: String, val title: String, val group: String)
+/** [guideId] is the playlist `tvg-id` (or Xtream `epg_channel_id`) used to match XMLTV programmes. */
+data class Channel(val url: String, val title: String, val group: String, val guideId: String = "")
 
 /** A TV that answered a vendor protocol probe on the local network. */
 data class TvDevice(val brand: TvBrand, val host: String, val name: String, val model: String = "")
@@ -58,6 +59,7 @@ class ParsePlaylistUseCase {
         val result = linkedMapOf<String, Channel>()
         var title = ""
         var group = ""
+        var guideId = ""
         content.removePrefix("﻿").lineSequence().drop(1).forEach { raw ->
             val line = raw.trim()
             when {
@@ -66,20 +68,28 @@ class ParsePlaylistUseCase {
                     val split = line.indexOfFirst { c -> if (c == '"') quoted = !quoted; c == ',' && !quoted }
                     title = if (split >= 0) line.substring(split + 1).trim() else ""
                     group = Regex("group-title=\"([^\"]*)\"").find(line)?.groupValues?.get(1).orEmpty()
+                    guideId = Regex("tvg-id=\"([^\"]*)\"").find(line)?.groupValues?.get(1)?.trim().orEmpty()
                 }
                 line.startsWith("#EXTGRP:") && group.isBlank() -> group = line.removePrefix("#EXTGRP:").trim()
                 line.isNotBlank() && !line.startsWith('#') -> {
                     if (isStreamUrl(line) && !result.containsKey(line)) {
                         require(result.size < 5_000)
-                        result[line] = Channel(line, title.ifBlank { line.substringBefore('?').substringAfterLast('/') }, group)
+                        result[line] = Channel(line, title.ifBlank { line.substringBefore('?').substringAfterLast('/') }, group, guideId)
                     }
-                    title = ""; group = ""
+                    title = ""; group = ""; guideId = ""
                 }
             }
         }
         require(result.isNotEmpty())
         return result.values.toList()
     }
+}
+/** XMLTV guide advertised in the `#EXTM3U` header (`url-tvg` / `x-tvg-url`); first HTTP(S) URL only. */
+fun playlistGuideUrl(content: String): String? {
+    val header = content.removePrefix("\uFEFF").lineSequence().firstOrNull()?.trim() ?: return null
+    if (!header.startsWith("#EXTM3U")) return null
+    val value = Regex("(?:url-tvg|x-tvg-url)=\"([^\"]*)\"").find(header)?.groupValues?.get(1) ?: return null
+    return value.split(',').map { it.trim() }.firstOrNull(::isStreamUrl)
 }
 fun isStreamUrl(value: String): Boolean = Regex("https?://[^\\s/]+(?:/[^\\s]*)?", RegexOption.IGNORE_CASE).matches(value)
 

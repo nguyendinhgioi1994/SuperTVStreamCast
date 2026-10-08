@@ -12,6 +12,20 @@ import platform.Foundation.NSURL
 import platform.AVFoundation.*
 import platform.AVKit.AVPlayerViewController
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.cinterop.addressOf
+import kotlinx.cinterop.usePinned
+import kotlinx.cinterop.convert
+import platform.UIKit.UIApplication
+import platform.UIKit.UIDocumentPickerDelegateProtocol
+import platform.UIKit.UIDocumentPickerViewController
+import platform.UniformTypeIdentifiers.UTTypeItem
+import platform.darwin.NSObject
+import platform.posix.fclose
+import platform.posix.fopen
+import platform.posix.fread
 
 @Composable actual fun rememberAppPreferences(): AppPreferences = remember {
     val prefs=NSUserDefaults.standardUserDefaults
@@ -54,3 +68,44 @@ import kotlinx.coroutines.delay
 
 @Composable actual fun rememberLanAccessRequest(): ((Boolean)->Unit)->Unit = remember { {callback -> callback(true)} }
 @Composable actual fun AppBackHandler(enabled: Boolean,onBack: ()->Unit) = Unit
+
+@Composable actual fun rememberFilePicker(maxBytes: Int,onPicked: (ByteArray?)->Unit): ()->Unit {
+    val result by rememberUpdatedState(onPicked)
+    val scope=rememberCoroutineScope()
+    val delegate=remember {PickerDelegate {url -> scope.launch {result(withContext(Dispatchers.Default) {readAtMost(url,maxBytes+1)})}}}
+    return remember(delegate) {{
+        val picker=UIDocumentPickerViewController(forOpeningContentTypes=listOf(UTTypeItem),asCopy=true)
+        picker.delegate=delegate
+        picker.allowsMultipleSelection=false
+        var top=UIApplication.sharedApplication.keyWindow?.rootViewController
+        while(top?.presentedViewController!=null) top=top.presentedViewController
+        top?.presentViewController(picker,animated=true,completion=null)
+    }}
+}
+private class PickerDelegate(private val onUrl: (NSURL)->Unit): NSObject(),UIDocumentPickerDelegateProtocol {
+    override fun documentPicker(controller: UIDocumentPickerViewController,didPickDocumentsAtURLs: List<*>) {
+        (didPickDocumentsAtURLs.firstOrNull() as? NSURL)?.let(onUrl)
+    }
+}
+/** The picker copies the file into the app sandbox (asCopy), so plain POSIX reads suffice. */
+private fun readAtMost(url: NSURL,limit: Int): ByteArray? {
+    val path=url.path ?: return null
+    val scoped=url.startAccessingSecurityScopedResource()
+    val file=fopen(path,"rb")
+    try {
+        if(file==null) return null
+        val buffer=ByteArray(limit)
+        var total=0
+        buffer.usePinned {pinned ->
+            while(total<limit) {
+                val read=fread(pinned.addressOf(total),1.convert(),(limit-total).convert(),file).toInt()
+                if(read<=0) break
+                total+=read
+            }
+        }
+        return buffer.copyOf(total)
+    } finally {
+        if(file!=null) fclose(file)
+        if(scoped) url.stopAccessingSecurityScopedResource()
+    }
+}

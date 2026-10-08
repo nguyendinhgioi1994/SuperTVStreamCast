@@ -45,7 +45,7 @@ import com.tuntech.supertvstreamcast.theme.TvColors
 }
 
 enum class Glyph { UP, DOWN, LEFT, RIGHT, POWER, BACK, PLUS, MINUS, MUTE, CHECK, ADD, SEARCH, PLAY, HEART, LOCK, WIFI, CLOSE, MENU,
-    PAUSE, STOP, REWIND, FAST_FORWARD, INPUT, KEYPAD, KEYBOARD, TOUCH }
+    PAUSE, STOP, REWIND, FAST_FORWARD, INPUT, KEYPAD, KEYBOARD, TOUCH, LINK, FILE, GUIDE, HELP }
 @Composable fun GlyphIcon(glyph: Glyph, modifier: Modifier=Modifier, color: Color=TvColors.Text) {
     Canvas(modifier.size(24.dp)) {
         val u=size.width/24f
@@ -80,6 +80,10 @@ enum class Glyph { UP, DOWN, LEFT, RIGHT, POWER, BACK, PLUS, MINUS, MUTE, CHECK,
             Glyph.KEYPAD -> {for(row in 0..2) for(col in 0..2) drawCircle(color,1.4f*u,p(6f+col*6f,6f+row*6f))}
             Glyph.KEYBOARD -> {drawRoundRect(color,p(2f,6f),Size(20*u,12*u),CornerRadius(2*u),style=Stroke(1.8f*u));for(i in 0..3){drawCircle(color,0.9f*u,p(6f+i*4f,10f))};line(8f,14.5f,16f,14.5f)}
             Glyph.TOUCH -> {drawCircle(color,3f*u,p(12f,12f));drawCircle(color,8f*u,p(12f,12f),style=Stroke(1.5f*u))}
+            Glyph.LINK -> {drawRoundRect(color,p(2.5f,8f),Size(10*u,8*u),CornerRadius(4*u),style=Stroke(1.8f*u));drawRoundRect(color,p(11.5f,8f),Size(10*u,8*u),CornerRadius(4*u),style=Stroke(1.8f*u))}
+            Glyph.FILE -> {path(listOf(p(14f,3f),p(6f,3f),p(6f,21f),p(18f,21f),p(18f,7f),p(14f,3f),p(14f,7f),p(18f,7f)));line(9f,12f,15f,12f);line(9f,16f,15f,16f)}
+            Glyph.GUIDE -> {drawRoundRect(color,p(3f,5f),Size(18*u,16*u),CornerRadius(2*u),style=Stroke(1.8f*u));line(3f,10f,21f,10f);line(8f,3f,8f,7f);line(16f,3f,16f,7f);line(7f,14f,11f,14f);line(7f,17.5f,15f,17.5f)}
+            Glyph.HELP -> {drawCircle(color,9*u,p(12f,12f),style=Stroke(1.8f*u));drawArc(color,180f,230f,false,p(9f,6.5f),Size(6*u,6*u),style=Stroke(1.8f*u,cap=androidx.compose.ui.graphics.StrokeCap.Round));line(12f,12.5f,12f,14f);drawCircle(color,1.1f*u,p(12f,17.5f))}
             Glyph.HEART -> {val path=androidx.compose.ui.graphics.Path().apply{moveTo(12*u,20*u);cubicTo(0f,12*u,3*u,1*u,12*u,7*u);cubicTo(21*u,1*u,24*u,12*u,12*u,20*u);close()};drawPath(path,color,style=Stroke(1.8f*u))}
         }
     }

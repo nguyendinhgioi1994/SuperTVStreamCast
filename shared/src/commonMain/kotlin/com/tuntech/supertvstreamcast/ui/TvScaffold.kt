@@ -33,7 +33,7 @@ import supertvstreamcast.shared.generated.resources.*
                 state.step<3 -> OnboardingScaffold(state,actions.next,actions.back,actions.brand,actions.goal)
                 state.player!=null -> PlayerContent(state,state.player,actions)
                 else -> AnimatedContent(state.tab,transitionSpec={fadeIn() togetherWith fadeOut()},label="tabTransition") { tab ->
-                    if(tab==Feature.IPTV) PlaylistScaffold(state,actions.importPlaylist,actions.favorite,actions.play)
+                    if(tab==Feature.IPTV) PlaylistScaffold(state,actions)
                     else Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal=TvDimens.Space)
                         .padding(top=8.dp,bottom=16.dp),verticalArrangement=Arrangement.spacedBy(20.dp)) {
                         AppHeader(state.brand){actions.tab(Feature.SETTINGS)}
@@ -58,10 +58,12 @@ import supertvstreamcast.shared.generated.resources.*
         Column(verticalArrangement=Arrangement.spacedBy(4.dp)) {
             Text(channel.title,style=MaterialTheme.typography.headlineSmall,maxLines=2,overflow=TextOverflow.Ellipsis)
             if(channel.group.isNotBlank()) Text(channel.group,style=MaterialTheme.typography.bodyMedium,color=TvColors.Muted)
+            val now=rememberEpochSeconds()
+            NowNext(upcoming(state.guide[channel.url],now),now)
         }
         key(channel.url) {StreamPlayer(channel.url,Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(24.dp)),actions.playerError)}
         state.error?.let { ErrorNotice(it) }
-        val zapping=state.channels.size>1
+        val zapping=state.channels.size>1&&state.channels.any{it.url==channel.url}
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceEvenly) {
             RoundAction(stringResource(Res.string.previous_channel),Glyph.LEFT,enabled=zapping){actions.zap(-1)}
             val favorite=channel.url in state.favorites
