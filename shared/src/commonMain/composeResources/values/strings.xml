@@ -1,0 +1,122 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+  <string name="app_name">TV Space</string>
+  <string name="tagline">Your TV. One beautiful space.</string>
+  <string name="welcome_title">Big screen.
+Bigger possibilities.</string>
+  <string name="welcome_body">A remote, your favorite streams, and a bigger view of everything you love.</string>
+  <string name="continue_label">Continue</string>
+  <string name="get_started">Enter TV Space</string>
+  <string name="back">Back</string>
+  <string name="brand_title">Meet your television</string>
+  <string name="brand_body">Choose a brand. Connection options depend on your TV model.</string>
+  <string name="goal_title">Make yourself at home</string>
+  <string name="goal_body">What would you like to do first? You can explore everything later.</string>
+  <string name="home">Home</string>
+  <string name="remote">Remote</string>
+  <string name="mirror">Mirror</string>
+  <string name="iptv">IPTV</string>
+  <string name="settings">Settings</string>
+  <string name="home_title">A little phone.
+A whole cinema.</string>
+  <string name="home_body">Your favorite moments deserve a bigger screen.</string>
+  <string name="connect_tv">Connect your TV</string>
+  <string name="not_connected">No TV connected</string>
+  <string name="connected">Connected</string>
+  <string name="essentials">Your everyday essentials</string>
+  <string name="remote_body">The controls you need, right at hand.</string>
+  <string name="mirror_body">Share the moment on a bigger screen.</string>
+  <string name="iptv_body">Your playlists. Your favorite channels.</string>
+  <string name="connection_title">Connect to your TV</string>
+  <string name="sony_setup">Sony BRAVIA IP control: enable Remote start and IP control on your TV, set a pre-shared key, and use the same Wi-Fi network. Supported models only.</string>
+  <string name="planned_brand">Direct control for this brand is in development. Use screen sharing or IPTV while we add support.</string>
+  <string name="ip_address">TV IP address</string>
+  <string name="psk">Pre-shared key</string>
+  <string name="connect">Connect</string>
+  <string name="disconnect">Disconnect</string>
+  <string name="working">Please wait…</string>
+  <string name="connection_failed">Unable to connect. Check Wi-Fi, TV IP, pre-shared key and IP-control settings.</string>
+  <string name="command_failed">This command could not be sent. Check the TV connection.</string>
+  <string name="invalid_ip">Enter a valid local IPv4 address.</string>
+  <string name="power">Power</string>
+  <string name="up">Up</string>
+  <string name="down">Down</string>
+  <string name="left">Left</string>
+  <string name="right">Right</string>
+  <string name="ok">OK</string>
+  <string name="volume_up">Volume +</string>
+  <string name="volume_down">Volume −</string>
+  <string name="mute">Mute</string>
+  <string name="tv_home">TV Home</string>
+  <string name="mirror_title">Your world, widescreen</string>
+  <string name="mirror_guide">1. Connect phone and TV to the same Wi-Fi.
+2. Open the system screen-sharing controls.
+3. Select a compatible TV.
+
+Availability depends on your phone and receiver. Protected video may not be shared.</string>
+  <string name="mirror_action">Open screen-sharing settings</string>
+  <string name="mirror_ios">On iPhone, open Control Center → Screen Mirroring and choose an AirPlay receiver.</string>
+  <string name="mirror_unavailable">Screen-sharing settings are not available on this device. Open them from system settings or quick controls.</string>
+  <string name="playlist_title">Live, on your terms</string>
+  <string name="playlist_body">Add your own M3U playlist. TV Space does not provide channels.</string>
+  <string name="playlist_input">Paste M3U content or HTTPS playlist URL</string>
+  <string name="import_playlist">Import playlist</string>
+  <string name="empty_playlist">Your next favorite channel starts here.</string>
+  <string name="playlist_error">Cannot import this playlist. Use an M3U playlist with HTTP or HTTPS streams (maximum 2 MB / 5,000 channels).</string>
+  <string name="search">Search channels</string>
+  <string name="no_results">No matching channels</string>
+  <string name="all_channels">All channels</string>
+  <string name="favorites">Favorites</string>
+  <string name="favorite_action">Toggle favorite</string>
+  <string name="player_error">Cannot play this stream. It may be offline or unsupported.</string>
+  <string name="settings_title">Make it yours</string>
+  <string name="change_brand">Change TV brand</string>
+  <string name="privacy_body">TV credentials stay in memory for this session. Onboarding preferences stay on this device. Playlists are provided by you. No bundled channels or account required.</string>
+  <string name="about">Made for your living room</string>
+  <string name="brand_selected">TV brand: %1$s</string>
+  <string name="lan_denied">Local network access was denied. Allow nearby-device access in system app settings to connect to your TV.</string>
+  <string name="home_eyebrow">YOUR LIVING ROOM, REIMAGINED</string>
+  <string name="home_greeting">Welcome to your space</string>
+  <string name="hero_badge">REMOTE · MIRROR · IPTV</string>
+  <string name="quick_access">Made for your TV</string>
+  <string name="connect_hint">Same Wi-Fi. One simple connection.</string>
+  <string name="connect_first">Connect your TV to start controlling</string>
+  <string name="volume">Volume</string>
+  <string name="remote_caption">A better remote, right in your hand.</string>
+  <string name="library">Your channel library</string>
+  <string name="add_playlist">Add playlist</string>
+  <string name="playlist_empty_title">Your TV lineup starts here</string>
+  <string name="playlist_empty_body">Bring your own playlist. Keep your favorite channels in one beautiful space.</string>
+  <string name="channels_count">%1$d channels</string>
+  <string name="favorites_count">%1$d favorites</string>
+  <string name="playlist_dialog_title">Bring your channels</string>
+  <string name="playlist_dialog_hint">Paste a playlist link or M3U content below.</string>
+  <string name="mirror_step_wifi">One Wi-Fi network</string>
+  <string name="mirror_step_wifi_body">Keep your phone and television on the same network.</string>
+  <string name="mirror_step_share">Open screen sharing</string>
+  <string name="mirror_step_share_body">Use your phone’s screen-sharing controls.</string>
+  <string name="mirror_step_tv">Choose your television</string>
+  <string name="mirror_step_tv_body">Select a compatible receiver and enjoy the bigger view.</string>
+  <string name="mirror_note">Receiver support varies. Protected videos may not be shared.</string>
+  <string name="privacy_title">Your space stays yours</string>
+  <string name="choose_brand">Your television</string>
+  <string name="choose_goal">Your first experience</string>
+  <string name="onboarding_step">STEP %1$d OF 3</string>
+  <string name="done">Done</string>
+  <string name="nav_home">Home</string>
+  <string name="nav_remote">Remote</string>
+  <string name="nav_mirror">Mirror</string>
+  <string name="nav_iptv">IPTV</string>
+  <string name="nav_settings">Settings</string>
+  <string name="status_ready">Ready when you are</string>
+  <string name="retry">Try again</string>
+  <string name="session_library_note">Your library stays available during this app session.</string>
+  <plurals name="library_channel_count">
+    <item quantity="one">%1$d channel</item>
+    <item quantity="other">%1$d channels</item>
+  </plurals>
+  <plurals name="library_favorite_count">
+    <item quantity="one">%1$d favorite</item>
+    <item quantity="other">%1$d favorites</item>
+  </plurals>
+</resources>

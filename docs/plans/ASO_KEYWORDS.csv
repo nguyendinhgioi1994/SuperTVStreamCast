@@ -1,0 +1,12 @@
+cluster,brand,primary_keyword,secondary_keywords,landing_message,activation_target,current_status
+universal,All,universal TV remote,"smart TV remote; TV remote control; all in one TV app",One app for your TV space,Choose brand and connect,Publish only with accurate supported-brand scope
+samsung,Samsung,Samsung TV remote,"remote for Samsung smart TV; Samsung screen mirroring; Samsung TV cast",Your Samsung TV in one space,Verified Samsung pairing,Roadmap - do not activate acquisition yet
+lg,LG,LG TV remote,"LG webOS remote; LG Magic Remote app; mirror to LG TV",Your LG entertainment companion,Verified webOS pairing,Roadmap - do not activate acquisition yet
+sony,Sony,Sony TV remote,"BRAVIA remote; Sony smart TV remote; Sony TV screen mirroring",Control compatible Sony BRAVIA TVs,IP and PSK connection,Implemented - hardware validation required
+google,Google / Android TV,Android TV remote,"Google TV remote; Chromecast IPTV; cast to Android TV",One space for your Google TV,Remote v2 pairing or Cast session,Roadmap - do not activate acquisition yet
+tcl,TCL,TCL TV remote,"TCL Google TV remote; TCL screen mirroring; remote for TCL TV",Find the right connection for your TCL,Identify Google TV or Roku OS,Roadmap - model OS routing required
+hisense,Hisense,Hisense TV remote,"VIDAA remote; Hisense Google TV remote; cast to Hisense TV",Connect with your Hisense TV,Identify VIDAA or Google TV,Roadmap - model OS routing required
+roku,Roku,Roku remote,"Roku TV remote; screen share Roku; TCL Roku remote",Compatibility review required,Permitted integration verified,Hold - ECP third-party restrictions require review
+mirror,All,screen mirroring to TV,"screen share TV; phone to TV; wireless display; AirPlay mirror",Bring your moments to a bigger screen,System Cast or AirPlay route selected,System-assisted only - do not promise custom in-app mirroring
+iptv,All,IPTV player,"M3U player; live TV player; playlist player; HLS player",Your playlists and favorite channels,Import and play own playlist,Implemented - native playback validation required
+vietnam,All,điều khiển TV,"điều khiển tivi Sony; chiếu màn hình lên TV; trình phát IPTV; xem playlist M3U",Một không gian cho TV của bạn,Choose brand and first successful use,EN VI localization available

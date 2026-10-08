@@ -1,0 +1,120 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+  <string name="app_name">TV Space</string>
+  <string name="tagline">TV của bạn. Một không gian hoàn hảo.</string>
+  <string name="welcome_title">Màn hình lớn.
+Trải nghiệm bất tận.</string>
+  <string name="welcome_body">Điều khiển TV, xem kênh yêu thích và đưa mọi trải nghiệm lên màn hình lớn.</string>
+  <string name="continue_label">Tiếp tục</string>
+  <string name="get_started">Khám phá TV Space</string>
+  <string name="back">Quay lại</string>
+  <string name="brand_title">Chọn TV của bạn</string>
+  <string name="brand_body">Chọn hãng TV. Cách kết nối phụ thuộc vào từng model.</string>
+  <string name="goal_title">Tận hưởng theo cách của bạn</string>
+  <string name="goal_body">Bạn muốn làm gì trước? Bạn có thể khám phá tất cả tính năng sau.</string>
+  <string name="home">Trang chủ</string>
+  <string name="remote">Điều khiển</string>
+  <string name="mirror">Chiếu màn hình</string>
+  <string name="iptv">IPTV</string>
+  <string name="settings">Cài đặt</string>
+  <string name="home_title">Điện thoại nhỏ.
+Rạp phim lớn.</string>
+  <string name="home_body">Khoảnh khắc yêu thích xứng đáng với màn hình lớn hơn.</string>
+  <string name="connect_tv">Kết nối TV</string>
+  <string name="not_connected">Chưa kết nối TV</string>
+  <string name="connected">Đã kết nối</string>
+  <string name="essentials">Mọi tiện ích bạn cần</string>
+  <string name="remote_body">Điều khiển thuận tiện ngay trên điện thoại.</string>
+  <string name="mirror_body">Chia sẻ khoảnh khắc trên màn hình lớn.</string>
+  <string name="iptv_body">Playlist của bạn. Kênh bạn yêu thích.</string>
+  <string name="connection_title">Kết nối với TV</string>
+  <string name="sony_setup">Sony BRAVIA: bật khởi động từ xa và điều khiển IP, đặt khóa PSK trên TV và dùng cùng mạng Wi-Fi. Chỉ hỗ trợ các model tương thích.</string>
+  <string name="planned_brand">Điều khiển trực tiếp hãng này đang được phát triển. Bạn có thể dùng chiếu màn hình hoặc IPTV.</string>
+  <string name="ip_address">Địa chỉ IP của TV</string>
+  <string name="psk">Khóa PSK</string>
+  <string name="connect">Kết nối</string>
+  <string name="disconnect">Ngắt kết nối</string>
+  <string name="working">Vui lòng chờ…</string>
+  <string name="connection_failed">Không kết nối được. Kiểm tra Wi-Fi, IP, khóa PSK và cài đặt điều khiển IP trên TV.</string>
+  <string name="command_failed">Không gửi được lệnh. Hãy kiểm tra kết nối TV.</string>
+  <string name="invalid_ip">Nhập địa chỉ IPv4 trong mạng nội bộ hợp lệ.</string>
+  <string name="power">Nguồn</string>
+  <string name="up">Lên</string>
+  <string name="down">Xuống</string>
+  <string name="left">Trái</string>
+  <string name="right">Phải</string>
+  <string name="ok">OK</string>
+  <string name="volume_up">Âm lượng +</string>
+  <string name="volume_down">Âm lượng −</string>
+  <string name="mute">Tắt tiếng</string>
+  <string name="tv_home">Trang chủ TV</string>
+  <string name="mirror_title">Thế giới của bạn, rộng hơn</string>
+  <string name="mirror_guide">1. Kết nối điện thoại và TV cùng Wi-Fi.
+2. Mở tính năng chia sẻ màn hình của hệ thống.
+3. Chọn TV tương thích.
+
+Khả năng hỗ trợ tùy điện thoại và TV. Video được bảo vệ có thể không chiếu được.</string>
+  <string name="mirror_action">Mở cài đặt chiếu màn hình</string>
+  <string name="mirror_ios">Trên iPhone, mở Trung tâm điều khiển → Phản chiếu màn hình rồi chọn thiết bị AirPlay.</string>
+  <string name="mirror_unavailable">Thiết bị này không có màn hình cài đặt chiếu màn hình. Hãy mở từ cài đặt hệ thống hoặc bảng điều khiển nhanh.</string>
+  <string name="playlist_title">Xem trực tiếp theo cách của bạn</string>
+  <string name="playlist_body">Thêm playlist M3U của bạn. TV Space không cung cấp các kênh truyền hình.</string>
+  <string name="playlist_input">Dán nội dung M3U hoặc URL playlist HTTPS</string>
+  <string name="import_playlist">Nhập playlist</string>
+  <string name="empty_playlist">Kênh yêu thích tiếp theo của bạn bắt đầu tại đây.</string>
+  <string name="playlist_error">Không nhập được playlist. Dùng M3U chứa luồng HTTP hoặc HTTPS (tối đa 2 MB / 5.000 kênh).</string>
+  <string name="search">Tìm kênh</string>
+  <string name="no_results">Không tìm thấy kênh</string>
+  <string name="all_channels">Tất cả kênh</string>
+  <string name="favorites">Yêu thích</string>
+  <string name="favorite_action">Thêm hoặc bỏ yêu thích</string>
+  <string name="player_error">Không phát được luồng này. Kênh có thể ngoại tuyến hoặc không được hỗ trợ.</string>
+  <string name="settings_title">Theo cách của bạn</string>
+  <string name="change_brand">Đổi hãng TV</string>
+  <string name="privacy_body">Thông tin kết nối TV chỉ nằm trong bộ nhớ phiên hiện tại. Lựa chọn ban đầu được lưu trên thiết bị. Playlist do bạn cung cấp. Không kèm kênh hoặc yêu cầu tài khoản.</string>
+  <string name="about">Dành cho không gian giải trí của bạn</string>
+  <string name="brand_selected">Hãng TV: %1$s</string>
+  <string name="lan_denied">Quyền mạng nội bộ bị từ chối. Cho phép truy cập thiết bị lân cận trong cài đặt ứng dụng để kết nối TV.</string>
+  <string name="home_eyebrow">KHÔNG GIAN GIẢI TRÍ CỦA BẠN</string>
+  <string name="home_greeting">Không gian của bạn</string>
+  <string name="hero_badge">REMOTE · MIRROR · IPTV</string>
+  <string name="quick_access">Dành cho TV của bạn</string>
+  <string name="connect_hint">Cùng Wi-Fi. Kết nối thật dễ.</string>
+  <string name="connect_first">Kết nối TV để bắt đầu điều khiển</string>
+  <string name="volume">Âm lượng</string>
+  <string name="remote_caption">Điều khiển mượt mà, ngay trong tay bạn.</string>
+  <string name="library">Thư viện kênh của bạn</string>
+  <string name="add_playlist">Thêm playlist</string>
+  <string name="playlist_empty_title">Bắt đầu bộ sưu tập kênh của bạn</string>
+  <string name="playlist_empty_body">Thêm playlist của bạn và gom các kênh yêu thích vào một không gian thật đẹp.</string>
+  <string name="channels_count">%1$d kênh</string>
+  <string name="favorites_count">%1$d yêu thích</string>
+  <string name="playlist_dialog_title">Thêm kênh của bạn</string>
+  <string name="playlist_dialog_hint">Dán liên kết playlist hoặc nội dung M3U vào bên dưới.</string>
+  <string name="mirror_step_wifi">Cùng một mạng Wi-Fi</string>
+  <string name="mirror_step_wifi_body">Kết nối điện thoại và TV vào cùng mạng Wi-Fi.</string>
+  <string name="mirror_step_share">Mở chia sẻ màn hình</string>
+  <string name="mirror_step_share_body">Mở tính năng chiếu màn hình của điện thoại.</string>
+  <string name="mirror_step_tv">Chọn TV của bạn</string>
+  <string name="mirror_step_tv_body">Chọn TV tương thích và tận hưởng màn hình lớn.</string>
+  <string name="mirror_note">Khả năng hỗ trợ tùy thiết bị. Video được bảo vệ có thể không chiếu được.</string>
+  <string name="privacy_title">Không gian của bạn, riêng tư</string>
+  <string name="choose_brand">TV của bạn</string>
+  <string name="choose_goal">Trải nghiệm đầu tiên</string>
+  <string name="onboarding_step">BƯỚC %1$d / 3</string>
+  <string name="done">Xong</string>
+  <string name="nav_home">Trang chủ</string>
+  <string name="nav_remote">Remote</string>
+  <string name="nav_mirror">Chiếu</string>
+  <string name="nav_iptv">IPTV</string>
+  <string name="nav_settings">Cài đặt</string>
+  <string name="status_ready">Sẵn sàng cùng bạn</string>
+  <string name="retry">Thử lại</string>
+  <string name="session_library_note">Thư viện được giữ trong phiên sử dụng hiện tại.</string>
+  <plurals name="library_channel_count">
+    <item quantity="other">%1$d kênh</item>
+  </plurals>
+  <plurals name="library_favorite_count">
+    <item quantity="other">%1$d yêu thích</item>
+  </plurals>
+</resources>
