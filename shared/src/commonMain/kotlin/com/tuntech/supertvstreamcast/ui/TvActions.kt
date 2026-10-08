@@ -13,4 +13,7 @@ class TvActions(
     val loadApps: () -> Unit = {}, val launch: (TvApp) -> Unit = {},
     val importPlaylist: (String) -> Unit = {}, val favorite: (String) -> Unit = {}, val play: (Channel) -> Unit = {},
     val zap: (Int) -> Unit = {}, val playerError: () -> Unit = {}, val share: (() -> Unit)? = null,
+    val pickPlaylistFile: () -> Unit = {}, val importXtream: (String, String, String) -> Unit = { _, _, _ -> },
+    val playStream: (String, String) -> Unit = { _, _ -> }, val importGuide: (String) -> Unit = {},
+    val pickGuideFile: () -> Unit = {}, val providerGuide: () -> Unit = {}, val clearError: () -> Unit = {},
 )

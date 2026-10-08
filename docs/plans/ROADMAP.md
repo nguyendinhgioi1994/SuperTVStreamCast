@@ -90,7 +90,10 @@ Paywall và quảng cáo chưa nằm trong bản foundation. Không dựng màn 
 - iOS: ReplayKit broadcast extension + receiver riêng nếu cần streaming trong app; AirPlay hệ thống vẫn là đường ưu tiên.
 - Theo [Android MediaProjection](https://developer.android.com/media/grow/media-projection), áp dụng permission/service và session lifecycle phù hợp SDK mục tiêu.
 - Persist playlist/favorites vào storage phù hợp; hiện library chỉ tồn tại trong session để tránh lưu token stream vào prefs không bảo vệ.
-- Media3 Android, mở rộng AVPlayer iOS, EPG XMLTV timezone, multiple playlists, playback controls, subtitles/track selection.
+- ✅ Nguồn IPTV: URL playlist (HTTP/HTTPS), Xtream Codes (live), tệp trên thiết bị, phát một luồng, EPG XMLTV now/next + hướng dẫn sử dụng. Xem `docs/context/iptv-sources.md`.
+- Còn lại IPTV: Xtream VOD/series và catch-up; EPG nén `.gz`, lưới EPG đầy đủ theo giờ địa phương; lưu nhiều playlist/tài khoản Xtream an toàn (Keystore/Keychain); theo redirect an toàn.
+- Media3 Android, mở rộng AVPlayer iOS, multiple playlists, playback controls, subtitles/track selection.
+- Gate IPTV nguồn mới: tài khoản Xtream thật (đúng/sai/hết hạn, panel HTTP và HTTPS), XMLTV thật cỡ lớn (thời gian parse/bộ nhớ trên máy yếu), document picker Android/iOS (Drive/iCloud), luồng HLS/TS thật.
 - Gate: receiver thật, 30 phút live, screen off/revoke/rotation, latency/fps/memory đo được; không chiếu DRM protected content; link có token không lọt analytics.
 
 ### GĐ5 — Monetization, ASO và release (chưa triển khai)
@@ -112,6 +115,7 @@ Paywall và quảng cáo chưa nằm trong bản foundation. Không dựng màn 
 | Touchpad, bàn phím số, nhập chữ, app TV | Implemented | Implemented | Theo capability từng adapter |
 | Screen sharing hệ thống | Cast settings | AirPlay hướng dẫn | Receiver/system quyết định hỗ trợ; không báo mirroring active |
 | IPTV M3U import và native player | Implemented | Implemented | Nhóm, gần đây, chuyển kênh trước/sau; library session-only |
+| IPTV Xtream Codes, tệp thiết bị, luồng đơn, EPG XMLTV | Implemented | Implemented (chưa compile iOS) | Xtream chỉ live; EPG không nén ≤12 MB; chưa test với nhà cung cấp thật |
 | Cast IPTV sang TV | Roadmap | Roadmap | Cần SDK/receiver |
 | Quét LAN theo yêu cầu | Implemented | Implemented | /24 unicast; chưa SSDP/mDNS |
 | Secure pairing store | Roadmap | Roadmap | Không lưu khóa ngầm; token chỉ trong phiên |
