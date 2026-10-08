@@ -15,6 +15,7 @@ import com.tuntech.supertvstreamcast.ui.*
     val state by model.state.collectAsStateWithLifecycle()
     val share = rememberScreenSharingAction()
     val requestLan = rememberLanAccessRequest()
+
     /** Every LAN action asks for local-network access at the point of use. */
     val lan: (() -> Unit) -> Unit = { action -> requestLan { granted -> if (granted) action() else model.report(UiError.PERMISSION) } }
     fun isLanUrl(url: String) = isLocalIpv4(url.trim().substringAfter("://").substringBefore('/').substringBefore(':'))
