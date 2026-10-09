@@ -6,36 +6,39 @@ import com.tuntech.supertvstreamcast.data.*
 import com.tuntech.supertvstreamcast.domain.*
 import com.tuntech.supertvstreamcast.net.*
 import com.tuntech.supertvstreamcast.platform.AppPreferences
+import com.tuntech.supertvstreamcast.platform.MemorySecretStore
+import com.tuntech.supertvstreamcast.platform.SecretStore
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpTimeout
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-enum class UiError { CONNECTION, COMMAND, PLAYLIST, INVALID_IP, PLAYER, MIRROR, PERMISSION, NO_WIFI, APPS,
-    XTREAM_INPUT, XTREAM, XTREAM_AUTH, FILE, STREAM_URL, GUIDE, GUIDE_COMPRESSED, GUIDE_NO_CHANNELS }
+enum class UiError { CONNECTION, PAIRING_CODE, WAKE, COMMAND, PLAYLIST, INVALID_IP, PLAYER, MIRROR, PERMISSION, NO_WIFI, APPS,
+    XTREAM_INPUT, XTREAM, XTREAM_AUTH, FILE, STREAM_URL, GUIDE, GUIDE_NO_CHANNELS, DOWNLOAD }
 data class TvUiState(
-    val step: Int = 0, val brand: TvBrand = TvBrand.SAMSUNG, val goal: Feature = Feature.REMOTE,
+    val brand: TvBrand = TvBrand.SAMSUNG,
     val tab: Feature = Feature.HOME, val connectionOpen: Boolean = false, val connected: Boolean = false,
-    val busy: Boolean = false, val error: UiError? = null, val channels: List<Channel> = emptyList(),
-    val favorites: Set<String> = emptySet(), val player: Channel? = null,
+    val busy: Boolean = false, val error: UiError? = null,
     val device: TvDevice? = null, val capabilities: RemoteCapabilities = RemoteCapabilities(),
     val apps: List<TvApp> = emptyList(), val appsLoading: Boolean = false,
     val scanning: Boolean = false, val scanned: Boolean = false, val discovered: List<TvDevice> = emptyList(),
-    val lastHost: String = "", val recent: List<String> = emptyList(),
-    /** EPG keyed by channel URL; [guideUrl] is the provider-advertised XMLTV source (may embed Xtream credentials, never shown). */
-    val guide: Map<String, List<Programme>> = emptyMap(), val guideUrl: String = "",
-    val truncated: Boolean = false, val imported: Int = 0,
+    val lastHost: String = "",
+    /** The TV is showing a pairing code that has to be typed in. */
+    val codeRequested: Boolean = false,
+    /** Hosts whose network adapter address is known, so a Wake-on-LAN packet can be sent to them. */
+    val wakeHosts: Set<String> = emptySet(),
+    /** A wake packet went out; nothing confirms that the TV received it. */
+    val wakeSent: Boolean = false,
 ) {
     fun can(key: RemoteKey) = connected && key in capabilities.keys
 }
+/** TV choice, tabs and the remote control. The IPTV library has its own [com.tuntech.supertvstreamcast.ui.iptv.IptvViewModel]. */
 class TvViewModel(
     private val prefs: AppPreferences,
-    private val repository: TvRepository = TvRepository(),
     private val http: HttpClient = HttpClient {
         followRedirects = false
         install(HttpTimeout) { requestTimeoutMillis = 8_000; connectTimeoutMillis = 5_000; socketTimeoutMillis = 5_000 }
@@ -43,44 +46,49 @@ class TvViewModel(
     private val sockets: LocalSockets = LocalSockets(::pinnedLocalClient),
     private val discoveryHttp: HttpClient = discoveryClient(),
     private val localIp: () -> String? = ::localIpv4Address,
-    private val now: () -> Long = ::epochSeconds,
+    /** Pairing tokens, pinned TV certificates and Wake-on-LAN addresses. */
+    private val secrets: SecretStore = MemorySecretStore(),
+    private val tls: TlsOpener = ::openTvTls,
+    private val broadcast: suspend (String, Int, ByteArray) -> Unit = ::sendBroadcast,
+    /** Tab opened first; onboarding passes the goal the user picked. */
+    startTab: Feature = Feature.HOME,
 ) : ViewModel() {
     private val savedDevice = prefs.lastDevice.split('|').takeIf { it.size == 3 && isLocalIpv4(it[1]) }
     private val mutable = MutableStateFlow(TvUiState(
-        step = if (prefs.onboardingDone) 3 else 0,
         brand = TvBrand.entries.firstOrNull { it.name == prefs.brand } ?: TvBrand.SAMSUNG,
-        goal = Feature.entries.firstOrNull { it.name == prefs.goal } ?: Feature.REMOTE,
+        tab = startTab,
         lastHost = savedDevice?.get(1).orEmpty(),
+        wakeHosts = setOfNotNull(savedDevice?.get(1)?.takeIf { secrets.get(macKey(it)) != null }),
     ))
     val state: StateFlow<TvUiState> = mutable.asStateFlow()
     private val discovery = TvDiscovery(discoveryHttp, plainSockets(discoveryHttp))
     private var adapter: RemoteAdapter? = null
+    /** Adapter holding an open pairing session while the user reads the code off the TV. */
+    private var pairing: RemoteAdapter? = null
     private val commands = Mutex()
 
-    fun next() {
-        mutable.update { it.copy(step = (it.step + 1).coerceAtMost(3)) }
-        if (state.value.step == 3) {
-            prefs.brand = state.value.brand.name; prefs.goal = state.value.goal.name; prefs.onboardingDone = true
-            mutable.update { it.copy(tab = it.goal) }
-        }
-    }
     fun back() = mutable.update {
         when {
             it.connectionOpen -> if(it.busy) it else it.copy(connectionOpen=false,error=null)
-            it.player!=null -> it.copy(player=null,error=null)
-            it.step<3 -> it.copy(step=(it.step-1).coerceAtLeast(0))
             else -> it.copy(tab=Feature.HOME,error=null)
         }
     }
     fun brand(brand: TvBrand) {
         if (state.value.busy) return
-        if (brand != state.value.brand) disconnect()
+        if (brand != state.value.brand) { disconnect(); dropPairing() }
         prefs.brand = brand.name
         mutable.update { it.copy(brand = brand, error = null) }
     }
-    fun goal(goal: Feature) = mutable.update { it.copy(goal = goal) }
-    fun tab(tab: Feature) = mutable.update { it.copy(tab = tab, error = null, player = null) }
-    fun connection(open: Boolean) { if (!state.value.busy) mutable.update { it.copy(connectionOpen = open, error = null) } }
+    fun tab(tab: Feature) = mutable.update { it.copy(tab = tab, error = null) }
+    fun connection(open: Boolean) {
+        if (state.value.busy) return
+        if (!open) dropPairing()
+        mutable.update { it.copy(connectionOpen = open, error = null, wakeSent = false) }
+    }
+    private fun dropPairing() {
+        pairing?.disconnect(); pairing = null
+        mutable.update { it.copy(codeRequested = false) }
+    }
     fun disconnect() {
         adapter?.disconnect(); adapter = null; sockets.close()
         mutable.update { it.copy(connected = false, capabilities = RemoteCapabilities(), apps = emptyList()) }
@@ -100,15 +108,50 @@ class TvViewModel(
         val brand = state.value.brand
         if (!brand.hasRemoteAdapter) return
         disconnect()
-        val created = createAdapter(brand, http, sockets.open) ?: return
-        work(UiError.CONNECTION) {
-            val session = created.connect(host, secret)
+        // A typed code continues the pairing session that made the TV show it.
+        val resumed = pairing?.takeIf { state.value.codeRequested && secret.isNotBlank() }
+        if (resumed == null) dropPairing()
+        val created = resumed ?: createAdapter(brand, http, sockets.open, secrets, tls) ?: return
+        mutable.update { it.copy(wakeSent = false) }
+        work(UiError.CONNECTION, { e -> if (e is PairingCodeInvalid) UiError.PAIRING_CODE else null }) {
+            val session = try { created.connect(host, secret.trim()) } catch (e: Exception) {
+                when (e) {
+                    is PairingCodeRequired -> { pairing = created; mutable.update { it.copy(codeRequested = true, lastHost = host) }; return@work }
+                    is PairingCodeInvalid, is CancellationException -> Unit
+                    else -> { created.disconnect(); if (pairing === created) dropPairing() }
+                }
+                throw e
+            }
+            pairing = null
             adapter = created
+            if (macBytes(session.device.mac) != null) secrets.put(macKey(host), session.device.mac)
             prefs.lastDevice = listOf(session.device.brand.name, host, session.device.name.replace('|', ' ')).joinToString("|")
-            mutable.update { it.copy(connected = true, connectionOpen = false, device = session.device, capabilities = session.capabilities, lastHost = host) }
+            mutable.update { it.copy(connected = true, connectionOpen = false, codeRequested = false, device = session.device, capabilities = session.capabilities, lastHost = host,
+                wakeHosts = if (secrets.get(macKey(host)) != null) it.wakeHosts + host else it.wakeHosts) }
             if (session.capabilities.apps) loadApps()
         }
     }
+    /** Sends a Wake-on-LAN packet for a TV that reported its adapter address earlier. Delivery cannot be confirmed. */
+    fun wake(ip: String) {
+        val host = ip.trim()
+        val packet = secrets.get(macKey(host))?.let(::magicPacket)
+        val target = subnetBroadcast(host)
+        if (packet == null || target == null) { report(UiError.WAKE); return }
+        mutable.update { it.copy(wakeSent = false) }
+        work(UiError.WAKE) {
+            for (address in listOf(target, "255.255.255.255")) repeat(3) { broadcast(address, 9, packet) }
+            mutable.update { it.copy(wakeSent = true) }
+        }
+    }
+    /** Forgets every stored pairing token, pinned certificate, wake address and the last TV. */
+    fun forgetTvs() {
+        if (state.value.busy) return
+        disconnect(); dropPairing()
+        secrets.clear()
+        prefs.lastDevice = ""
+        mutable.update { it.copy(lastHost = "", wakeHosts = emptySet(), wakeSent = false, device = null, error = null) }
+    }
+    private fun macKey(host: String) = "mac.$host"
     fun scan() {
         if (state.value.scanning) return
         val ip = localIp()
@@ -137,64 +180,6 @@ class TvViewModel(
             } finally { mutable.update { it.copy(appsLoading = false) } }
         }
     }
-    /** Playlist URL (HTTP/HTTPS) or pasted M3U content. */
-    fun importPlaylist(value: String) = importLibrary(UiError.PLAYLIST) { m3u(repository.loadPlaylist(value)) }
-    /** Bytes picked from device storage; null means the file could not be read. */
-    fun importPlaylistFile(bytes: ByteArray?) {
-        if (bytes == null || bytes.size > PLAYLIST_MAX_BYTES) { report(UiError.FILE); return }
-        importLibrary(UiError.PLAYLIST) { m3u(bytes.decodeToString()) }
-    }
-    fun importXtream(server: String, username: String, password: String) {
-        val login = XtreamApi.login(server, username, password)
-        if (login == null) { report(UiError.XTREAM_INPUT); return }
-        importLibrary(UiError.XTREAM, { e -> if (e is XtreamAuthException) UiError.XTREAM_AUTH else null }) {
-            repository.loadXtream(login)
-        }
-    }
-    /** Plays one user-entered stream without changing the library. */
-    fun playStream(url: String, title: String) {
-        val channel = singleStream(url, title)
-        if (channel == null) report(UiError.STREAM_URL) else { play(channel); mutable.update { it.copy(imported = it.imported + 1) } }
-    }
-    fun importGuide(url: String) {
-        val trimmed = url.trim()
-        if (!isStreamUrl(trimmed)) { report(UiError.GUIDE); return }
-        guide { repository.loadText(trimmed, GUIDE_MAX_BYTES) }
-    }
-    fun importGuideFile(bytes: ByteArray?) {
-        if (bytes == null || bytes.size > GUIDE_MAX_BYTES) { report(UiError.FILE); return }
-        if (isGzip(bytes)) { report(UiError.GUIDE_COMPRESSED); return }
-        guide { bytes.decodeToString() }
-    }
-    fun useProviderGuide() { state.value.guideUrl.takeIf { it.isNotEmpty() }?.let(::importGuide) }
-    fun play(channel: Channel) = mutable.update { it.copy(player = channel, error = null, recent = withRecent(it.recent, channel.url)) }
-    fun zap(step: Int) {
-        val current = state.value.player ?: return
-        if (state.value.channels.none { it.url == current.url }) return
-        adjacentChannel(state.value.channels, current, step)?.let(::play)
-    }
-    fun favorite(url: String) = mutable.update { it.copy(favorites = if (url in it.favorites) it.favorites - url else it.favorites + url) }
-
-    private suspend fun m3u(content: String) =
-        IptvLibrary(withContext(Dispatchers.Default) { ParsePlaylistUseCase()(content) }, playlistGuideUrl(content).orEmpty())
-    /** Replaces the session library; the previous guide no longer matches and is dropped. */
-    private fun importLibrary(error: UiError, classify: (Exception) -> UiError? = { null }, load: suspend () -> IptvLibrary) =
-        work(error, classify) {
-            val (channels, guideUrl, truncated) = load()
-            val urls = channels.map { c -> c.url }.toSet()
-            mutable.update { it.copy(channels = channels, favorites = it.favorites.intersect(urls), recent = it.recent.filter { u -> u in urls },
-                player = null, guide = emptyMap(), guideUrl = guideUrl, truncated = truncated, imported = it.imported + 1) }
-        }
-    private fun guide(load: suspend () -> String) {
-        val channels = state.value.channels
-        if (channels.isEmpty()) { report(UiError.GUIDE_NO_CHANNELS); return }
-        work(UiError.GUIDE, { e -> if (e is CompressedGuideException) UiError.GUIDE_COMPRESSED else null }) {
-            val content = load()
-            val guide = withContext(Dispatchers.Default) { ParseGuideUseCase()(content, channels, now()) }
-            mutable.update { it.copy(guide = guide, imported = it.imported + 1) }
-        }
-    }
-
     /** Remote commands run in order without blocking the UI; a failure ends the session honestly. */
     private fun command(action: suspend (RemoteAdapter) -> Unit) {
         val current = adapter ?: return
@@ -208,17 +193,17 @@ class TvViewModel(
             }
         }
     }
-    private fun work(error: UiError, classify: (Exception) -> UiError? = { null }, action: suspend () -> Unit) {
-        if (state.value.busy) return
+    private fun work(error: UiError, classify: (Exception) -> UiError? = { null }, action: suspend () -> Unit): Job? {
+        if (state.value.busy) return null
         mutable.update { it.copy(busy = true, error = null) }
-        viewModelScope.launch {
+        return viewModelScope.launch {
             try { action() } catch (e: CancellationException) { throw e } catch (e: Exception) {
                 if (error == UiError.CONNECTION) disconnect()
                 mutable.update { it.copy(error = classify(e) ?: error) }
             } finally { mutable.update { it.copy(busy = false) } }
         }
     }
-    override fun onCleared() { disconnect(); repository.close(); http.close(); discoveryHttp.close() }
+    override fun onCleared() { disconnect(); pairing?.disconnect(); http.close(); discoveryHttp.close() }
 }
 
 @OptIn(kotlin.time.ExperimentalTime::class)

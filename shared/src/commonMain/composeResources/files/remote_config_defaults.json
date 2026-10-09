@@ -1,0 +1,95 @@
+{
+  "IAP_SETTINGS": {
+    "isEnabled": true,
+    "isFirstStartupEnabled": true,
+    "isStartupEnabled": true,
+    "isReminderEnabled": false,
+    "isManageSubscriptionEnabled": false,
+    "isCloseButtonEnabled": true,
+    "closeButtonDelayTime": 0,
+    "paywallId": "1",
+    "defaultProductId": "monthly",
+    "productIds": [
+      "weekly",
+      "monthly",
+      "yearly"
+    ]
+  },
+  "IAP_DISCOUNT_SETTINGS": {
+    "isEnabled": false
+  },
+  "ADS_APP_OPEN_SETTINGS": {
+    "isEnabled": false,
+    "maximumPreloadAd": 1,
+    "maximumLoadFailAd": 3,
+    "*": {
+      "isEnabled": true
+    },
+    "APP_FOREGROUND": {
+      "isEnabled": true
+    }
+  },
+  "ADS_INTERSTITIAL_SETTINGS": {
+    "isEnabled": true,
+    "maximumPreloadAd": 1,
+    "maximumLoadFailAd": 3,
+    "nextDisplayAdTime": 0,
+    "bypassRepeatingPolicyEnabled": false,
+    "*": {
+      "isEnabled": false
+    },
+    "INTRODUCTION": {
+      "isEnabled": true
+    },
+    "PREMIUM": {
+      "isEnabled": false
+    },
+    "APP_EXIT": {
+      "isEnabled": false
+    }
+  },
+  "ADS_REWARDED_SETTINGS": {
+    "isEnabled": false,
+    "maximumPreloadAd": 1,
+    "maximumLoadFailAd": 3,
+    "*": {
+      "isEnabled": false
+    }
+  },
+  "ADS_BANNER_SETTINGS": {
+    "isEnabled": false,
+    "*": {
+      "isEnabled": false
+    }
+  },
+  "ADS_NATIVE_SETTINGS": {
+    "isEnabled": true,
+    "preloadSetting": {
+      "isEnabled": true,
+      "maximum": 2,
+      "maximumLoadFailAd": 3
+    },
+    "*": {
+      "isEnabled": false,
+      "size": "small_native",
+      "position": 4
+    },
+    "INTRODUCTION": {
+      "isEnabled": true,
+      "size": "small_native"
+    }
+  },
+  "NOTIFICATION_SETTINGS": {
+    "isEnabled": false
+  },
+  "IN_APP_UPDATE_SETTINGS": {
+    "isEnabled": true,
+    "type": "flexible"
+  },
+  "IPTV_SETTINGS": {
+    "maximumSources": 0,
+    "maximumWatchSeconds": 0
+  },
+  "TERM_OF_SERVICE_URL": "",
+  "PRIVACY_POLICY_URL": ""
+}

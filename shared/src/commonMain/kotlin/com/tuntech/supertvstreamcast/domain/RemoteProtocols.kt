@@ -44,6 +44,10 @@ object SonyProtocol {
         val uri = app["uri"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
         TvApp(uri, app["title"]?.jsonPrimitive?.contentOrNull.orEmpty().ifBlank { uri })
     }
+    /** `hwAddr` of the first interface in a `getNetworkSettings` reply that has one. */
+    fun mac(body: String): String = runCatching {
+        result(body)[0].jsonArray.firstNotNullOfOrNull { it.jsonObject["hwAddr"]?.jsonPrimitive?.contentOrNull?.takeIf { mac -> macBytes(mac) != null } }
+    }.getOrNull().orEmpty()
     /** Unauthenticated identity probe; only `productCategory == tv` counts as a TV. */
     fun identity(host: String, body: String): TvDevice? {
         val info = runCatching { result(body)[0].jsonObject }.getOrNull() ?: return null
@@ -77,7 +81,8 @@ object SamsungProtocol {
         val name = device["name"]?.jsonPrimitive?.contentOrNull?.ifBlank { null } ?: "Samsung TV"
         val model = device["modelName"]?.jsonPrimitive?.contentOrNull.orEmpty()
         val token = device["TokenAuthSupport"]?.jsonPrimitive?.contentOrNull == "true"
-        return Info(TvDevice(TvBrand.SAMSUNG, host, name, model), token)
+        val mac = device["wifiMac"]?.jsonPrimitive?.contentOrNull?.takeIf { macBytes(it) != null }.orEmpty()
+        return Info(TvDevice(TvBrand.SAMSUNG, host, name, model, mac), token)
     }
     fun url(host: String, secure: Boolean, token: String?): String {
         val name = Base64.encode(APP_NAME.encodeToByteArray())

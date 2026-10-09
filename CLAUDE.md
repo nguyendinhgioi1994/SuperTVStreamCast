@@ -2,7 +2,8 @@
 
 Inherited architecture/design principles from `../PetTranslator/CLAUDE.md`; flow reference `../ElectronicsRepair`. See `docs/plans/ROADMAP.md` for adaptation and remaining work.
 
-- Keep existing modules `:androidApp`, `:shared`, `iosApp`; platform entrypoints already use Shared.
+- Keep existing modules `:androidApp`, `:shared`, `iosApp`; platform entrypoints already use Shared. Tuntech submodules map to `:common`, `:monetization`, `:mmp`, `:mmp_firebase` (clone with `git submodule update --init`).
+- Entry flow (Splash → Onboarding → Paywall → Dashboard, Koin, Navigation 3) follows Smart Printer / Cam Scanner; see `docs/context/entry-flow.md`. Firebase, Qonversion and AdMob ids are placeholders until the real projects exist.
 - UI → domain → repository; platform APIs only in platform source sets. ViewModel exposes StateFlow; children receive values and callbacks.
 - Externalize app strings. Development EN/VI; complete 13 template locales before international release. No text baked into imagery.
 - Use TvColors/TvDimens and Material typography. Artwork WebP, UI icons scalable, source launcher SVG kept in design/.

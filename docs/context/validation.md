@@ -20,7 +20,7 @@ This is not a full hardware acceptance test. No Sony/Samsung/LG/Google TV receiv
 
 - Vendor remote adapters and multi-model testing.
 - Full receiver/casting/mirroring engine, native permission revocation and lifecycle tests.
-- Persistent secure IPTV library, EPG, reliable adaptive player/track features.
+- IPTV library on a device (saved sources, Xtream movies/series, resume, hidden channels, shared links), library file encryption, EPG tab, reliable adaptive player/track features.
 - iOS runtime, font scaling/RTL/accessibility testing, remaining international locales.
 - SDK/account configuration for ads, purchase/restore, analytics, release signing and store publication.
 
@@ -57,3 +57,48 @@ Same environment limit: Google Maven is blocked (403), so `:androidApp:assembleD
 - EN/VI string resources match (204 strings + 4 plurals); every `Res.string`/`Res.plurals` reference resolves.
 
 Not verified: real Xtream panels, real XMLTV files, the system document pickers, iOS compilation and any runtime UI.
+
+## Full local build and iOS simulator launch (09/10/2026)
+
+Run on macOS with Xcode 27 and full network access, covering the entry flow, multi-brand remote and IPTV sources changes that earlier sections could not build.
+
+- `./gradlew :androidApp:assembleDebug :shared:testAndroidHostTest :shared:compileKotlinIosSimulatorArm64` passed; host tests: 50 tests, 0 failures, 0 errors.
+- `./gradlew :shared:linkDebugFrameworkIosSimulatorArm64` passed.
+- `xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp -configuration Debug` for the iPhone 17 simulator (iOS 26.2) first failed on `checkSyntheticImportProjectIsCorrectlyIntegratedForEmbedAndSign`. Fixed by running `:shared:integrateLinkagePackage` with `XCODEPROJ_PATH`, which generated `iosApp/KotlinMultiplatformLinkedPackage/` and updated `project.pbxproj`; the build then succeeded (unsigned, `CODE_SIGNING_ALLOWED=NO`).
+- The app was installed and launched on that simulator: it left Splash, showed Onboarding step 1 of 3 and the UMP consent form for Google's test publisher. The process stayed alive.
+
+Not verified: nothing was tapped on iOS, so consent choice, the rest of onboarding, paywall, dashboard tabs, remote, pickers and playback on iOS remain untested. No signed/device build. Android runtime was not re-run in this pass. Hardware and account gates above are unchanged.
+
+## IPTV library (09/10/2026)
+
+Saved sources, Xtream movies/series, favorites / continue watching / hidden channels, programme list and shared links ([iptv-library.md](iptv-library.md)).
+
+- `./gradlew :shared:testAndroidHostTest :androidApp:assembleDebug :shared:compileKotlinIosSimulatorArm64` and `:shared:linkDebugFrameworkIosSimulatorArm64` pass. New tests: `IptvLibraryTest` (9) and two rewritten Xtream tests in `IptvSourcesTest`.
+- EN/VI string keys match.
+
+- Xcode simulator build passes; on the iPhone 17 simulator the app starts and iOS offers to open a `tvspace://import-playlist` link in TV Space (scheme registered). The run stopped at the consent form and onboarding, so the IPTV tab itself was not reached. Installing on the attached Android phone was refused by the device (needs confirmation on the phone).
+
+Not verified: the new screens, the saved library across an app restart, playback resume, Android full screen, the `tvspace://` link on either platform and real Xtream movie/series panels are untested at runtime. `IptvViewModel` has no unit test.
+
+## Google TV Remote v2, Wake-on-LAN and secret store (09/10/2026)
+
+Build and logic, on the working tree that also contains the IPTV library rework done the same day:
+
+- `./gradlew :androidApp:assembleDebug :shared:testAndroidHostTest :shared:compileKotlinIosSimulatorArm64 :shared:linkDebugFrameworkIosSimulatorArm64` passed; host tests: 73 tests, 0 failures. The Xcode simulator build of `iosApp` passed.
+- New `GoogleTvTest` (9 tests): SHA-256 against published vectors, protobuf encoding/parsing, pairing message bytes, pairing secret and its check byte, remote events and key codes, magic packet, and the adapter against a scripted TLS channel (code required → mistyped code keeps the session → paired, pinned, configured, ping answered, key sent; reconnect from the stored pin; changed TV certificate is not used and pairing restarts; rejected secret never connects or pins).
+- `AdapterTest`: Samsung token and LG client key are reused from the secret store by a new adapter instance; Samsung reports `wifiMac`. `TvRepositoryTest`: Sony reads `hwAddr` after authenticating.
+- `DerCertificateHostTest` (JVM): the hand-built self-signed certificate is accepted by the JDK `CertificateFactory`, verifies against its key, and its RSA key is read back by `Der.certificateKey`.
+
+iOS runtime, iPhone 17 simulator (iOS 26.2), with a temporary launch-time probe in a private copy of the app (not in the repository) against a local `openssl s_server -Verify 1` on the Mac's LAN address:
+
+- Keychain secret store: put, overwrite, read back (non-ASCII value) and clear behaved as expected. This needs the normally signed simulator build; a build made with `CODE_SIGNING_ALLOWED=NO` has no Keychain and reads everything as absent.
+- `openTvTls`: the RSA identity was created in the Keychain, the handshake completed, the server logged the client certificate `CN = atvremote`, `peerCertificate` hashed to the server certificate's SHA-256, the first write was logged by the server, four reads returned the server's data, a second connection presented the same certificate, and a closed port failed with an exception.
+- This run found and fixed a crash: reading Network.framework's default message context global from Kotlin/Native aborts the app, so each write now creates its own context.
+- `sendBroadcast` returned without error on the simulator; whether the datagram reached the network was not observed.
+
+Not verified:
+
+- No Google TV / Android TV was available. The protocol constants and message layout follow the public reverse-engineered description of Android TV Remote Service v2 and are exercised only against the scripted channel: real pairing, the on-TV code, certificate acceptance on port 6466, ping cadence and key behaviour are hardware gates.
+- Android runtime of the Keystore-backed pieces (AES secret store, RSA identity, TLS 1.2 client-certificate handshake, UDP broadcast): the two local emulators did not finish booting headless, so this code is compiled and reviewed only.
+- Wake-on-LAN against a real TV (does the TV wake, is the reported address the one that listens), and broadcast sending on a physical iPhone, which needs Apple's multicast entitlement.
+- The connection dialog's code field, wake button and Settings → Forget paired TVs were not exercised in a running UI.

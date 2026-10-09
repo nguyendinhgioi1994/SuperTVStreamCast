@@ -1,0 +1,16 @@
+[submodule "tuntech_common_kmp"]
+	path = tuntech_common_kmp
+	url = https://github.com/nguyendinhgioi1994/tuntech_common_kmp
+	branch = main
+[submodule "tuntech_monetization_kmp"]
+	path = tuntech_monetization_kmp
+	url = https://github.com/nguyendinhgioi1994/tuntech_monetization_kmp
+	branch = main
+[submodule "tuntech_mmp_kmp"]
+	path = tuntech_mmp_kmp
+	url = https://github.com/nguyendinhgioi1994/tuntech_mmp_kmp
+	branch = main
+[submodule "tuntech_mmp_firebase_kmp"]
+	path = tuntech_mmp_firebase_kmp
+	url = https://github.com/nguyendinhgioi1994/tuntech_mmp_firebase_kmp
+	branch = main

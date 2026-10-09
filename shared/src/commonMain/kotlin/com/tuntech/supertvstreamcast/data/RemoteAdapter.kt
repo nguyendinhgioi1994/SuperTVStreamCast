@@ -1,6 +1,9 @@
 package com.tuntech.supertvstreamcast.data
 
 import com.tuntech.supertvstreamcast.domain.*
+import com.tuntech.supertvstreamcast.net.TlsOpener
+import com.tuntech.supertvstreamcast.platform.MemorySecretStore
+import com.tuntech.supertvstreamcast.platform.SecretStore
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.websocket.*
 import io.ktor.websocket.*
@@ -47,9 +50,11 @@ class LocalSockets(private val clientFor: (String) -> HttpClient) {
 /** Plain (non-TLS) WebSocket opener for discovery probes. */
 fun plainSockets(client: HttpClient): SocketOpener = { _, url -> KtorTextSocket(client.webSocketSession(url)) }
 
-fun createAdapter(brand: TvBrand, http: HttpClient, sockets: SocketOpener): RemoteAdapter? = when (brand) {
+/** [tls] is only needed by brands that authenticate with a client certificate (Google TV). */
+fun createAdapter(brand: TvBrand, http: HttpClient, sockets: SocketOpener, secrets: SecretStore = MemorySecretStore(), tls: TlsOpener? = null): RemoteAdapter? = when (brand) {
     TvBrand.SONY -> SonyBraviaAdapter(http)
-    TvBrand.SAMSUNG -> SamsungTizenAdapter(http, sockets)
-    TvBrand.LG -> LgWebOsAdapter(sockets)
+    TvBrand.SAMSUNG -> SamsungTizenAdapter(http, secrets, sockets)
+    TvBrand.LG -> LgWebOsAdapter(secrets, sockets)
+    TvBrand.GOOGLE -> tls?.let { GoogleTvAdapter(it, secrets) }
     else -> null
 }
