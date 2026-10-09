@@ -93,7 +93,8 @@ Paywall chỉ liệt kê product thật từ Qonversion; khi chưa có project k
 - ✅ 09/10/2026 (code, chưa chạy trên thiết bị): thư viện IPTV lưu trên máy với nhiều nguồn, Xtream phim/series, xem tiếp, yêu thích, kênh ẩn + mật mã, lịch chương trình theo kênh, liên kết chia sẻ `tvspace://`. Xem `docs/context/iptv-library.md`.
 - ✅ Nguồn IPTV: URL playlist (HTTP/HTTPS), Xtream Codes (live), tệp trên thiết bị, phát một luồng, EPG XMLTV now/next + hướng dẫn sử dụng. Xem `docs/context/iptv-sources.md`.
 - ✅ 09/10/2026: parser M3U chịu lỗi (logo, user-agent/referer), tải dạng stream + theo redirect, hủy/tiến độ nhập, EPG `.gz`, player Media3, logo kênh.
-- Còn lại IPTV (so với `../iptv_kmp`): mã hóa tệp thư viện bằng khóa Keystore/Keychain (hiện dựa vào bộ nhớ riêng của app, không sao lưu); Xtream catch-up; tab EPG riêng với lưới theo giờ, chọn ngày và nhắc lịch (thông báo); điều khiển player riêng (audio/phụ đề/tỉ lệ/tốc độ), mini player, PiP, nút Cast/AirPlay; iOS phát `.ts` thô (cần engine ngoài AVPlayer); QR chia sẻ/quét; đồng bộ nguồn sang TV; giới hạn bản miễn phí (số nguồn, thời lượng xem) khi có Qonversion thật; test `IptvViewModel`. Chi tiết ở cuối `docs/context/iptv-library.md`.
+- ✅ 09/10/2026 (code, chưa chạy trên thiết bị): tệp thư viện được mã hóa bằng khóa Keystore/Keychain; lịch phát sóng dạng lưới/danh sách + nhắc lịch; mini player, PiP và Chromecast (Android), lấp đầy màn hình; QR chia sẻ/quét; giới hạn bản miễn phí qua Remote Config `IPTV_SETTINGS` (mặc định tắt); test `IptvViewModel`.
+- Còn lại IPTV (so với `../iptv_kmp`): nghiệm thu toàn bộ trên thiết bị; Xtream catch-up; tab nguồn EPG riêng và lịch quá 36 giờ; menu audio/phụ đề/tốc độ riêng của app; iOS phát `.ts` thô (cần engine ngoài AVPlayer); đồng bộ nguồn sang TV (cần backend); đặt lại nhắc lịch sau khi Android khởi động lại; chốt con số giới hạn miễn phí khi có Qonversion thật. Chi tiết ở cuối `docs/context/iptv-library.md`.
 - Media3 Android, mở rộng AVPlayer iOS, multiple playlists, playback controls, subtitles/track selection.
 - Gate IPTV nguồn mới: tài khoản Xtream thật (đúng/sai/hết hạn, panel HTTP và HTTPS), XMLTV thật cỡ lớn (thời gian parse/bộ nhớ trên máy yếu), document picker Android/iOS (Drive/iCloud), luồng HLS/TS thật.
 - Gate: receiver thật, 30 phút live, screen off/revoke/rotation, latency/fps/memory đo được; không chiếu DRM protected content; link có token không lọt analytics.
@@ -122,7 +123,7 @@ Paywall chỉ liệt kê product thật từ Qonversion; khi chưa có project k
 | Screen sharing hệ thống | Cast settings | AirPlay hướng dẫn | Receiver/system quyết định hỗ trợ; không báo mirroring active |
 | IPTV M3U import và native player | Implemented | Implemented | Nhiều nguồn lưu trên máy, nhóm, xem tiếp, yêu thích, kênh ẩn; chưa chạy thử trên thiết bị sau khi đổi sang thư viện lưu trữ |
 | IPTV Xtream Codes, tệp thiết bị, luồng đơn, EPG XMLTV | Implemented | Implemented | Xtream live + phim + series; EPG `.xml`/`.xml.gz` (không lưu, tải lại mỗi phiên); iOS không phát `.ts` thô; chưa test với nhà cung cấp thật |
-| Cast IPTV sang TV | Roadmap | Roadmap | Cần SDK/receiver |
+| Cast IPTV sang TV | Implemented (Chromecast, Default Media Receiver) | AirPlay của AVKit | Chưa thử với receiver thật; header riêng của kênh không tới được receiver |
 | Quét LAN theo yêu cầu | Implemented | Implemented | /24 unicast; chưa SSDP/mDNS |
 | Secure pairing store | Implemented | Implemented | Token Samsung/LG, pin chứng chỉ Google TV, MAC; PSK Sony và đăng nhập Xtream vẫn chỉ trong phiên |
 
