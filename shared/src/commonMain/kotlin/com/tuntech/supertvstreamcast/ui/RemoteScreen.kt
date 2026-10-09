@@ -14,6 +14,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -27,7 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.tuntech.supertvstreamcast.domain.*
 import com.tuntech.supertvstreamcast.theme.*
 import org.jetbrains.compose.resources.*
-import supertvstreamcast.shared.generated.resources.*
+import shared.resources.*
 
 @Composable internal fun RemoteContent(state: TvUiState, actions: TvActions) {
     var touchpad by rememberSaveable { mutableStateOf(false) }
@@ -90,9 +91,11 @@ import supertvstreamcast.shared.generated.resources.*
 @Composable private fun DirectionPad(state: TvUiState, press: (RemoteKey) -> Unit) {
     BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         val size = minOf(maxWidth, 248.dp)
-        Box(Modifier.size(size).clip(CircleShape).background(TvColors.RemoteGradient).border(1.dp, TvColors.Outline, CircleShape)) {
+        // The ring breathes only while a TV is really connected.
+        val breath = rememberPulse(2600, state.connected)
+        Box(Modifier.size(size).shadow(18.dp, CircleShape, ambientColor = TvColors.Cyan, spotColor = TvColors.Pink).clip(CircleShape).background(TvColors.RemoteGradient).border(2.dp, TvColors.featureGradient(Feature.REMOTE), CircleShape)) {
             Canvas(Modifier.matchParentSize()) {
-                drawCircle(TvColors.Cyan.copy(alpha = 0.08f), radius = this.size.minDimension / 2 - 12.dp.toPx(), style = Stroke(1.dp.toPx()))
+                drawCircle(TvColors.Cyan.copy(alpha = 0.1f + 0.3f * breath.value), radius = this.size.minDimension / 2 - 12.dp.toPx(), style = Stroke((1f + breath.value).dp.toPx()))
                 drawCircle(TvColors.Background.copy(alpha = 0.35f), radius = this.size.minDimension / 2 - 62.dp.toPx(), style = Stroke(1.dp.toPx()))
             }
             DirectionKey(RemoteKey.UP, Glyph.UP, stringResource(Res.string.up), state, Modifier.align(Alignment.TopCenter).padding(top = 10.dp), press)
@@ -103,7 +106,7 @@ import supertvstreamcast.shared.generated.resources.*
             Button(onClick = { press(RemoteKey.OK) }, enabled = enabled, contentPadding = PaddingValues(0.dp), shape = CircleShape,
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, disabledContainerColor = TvColors.Raised), modifier = Modifier.align(Alignment.Center).size(78.dp)) {
                 Box(Modifier.fillMaxSize().background(if (enabled) TvColors.Gradient else TvColors.SurfaceGradient), contentAlignment = Alignment.Center) {
-                    Text(stringResource(Res.string.ok), style = MaterialTheme.typography.titleLarge, color = if (enabled) TvColors.Background else TvColors.Muted)
+                    Text(stringResource(Res.string.ok), style = MaterialTheme.typography.titleLarge, color = if (enabled) TvColors.OnAccent else TvColors.Muted)
                 }
             }
         }
@@ -172,15 +175,16 @@ import supertvstreamcast.shared.generated.resources.*
     }
 }
 @Composable private fun ModeTab(text: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    Box(modifier.clip(RoundedCornerShape(12.dp)).background(if (selected) TvColors.Raised else Color.Transparent)
+    Box(modifier.clip(RoundedCornerShape(12.dp)).then(if (selected) Modifier.background(TvColors.featureGradient(Feature.REMOTE)) else Modifier)
         .clickable(role = Role.Tab, onClick = onClick).semantics { this.selected = selected }.padding(horizontal = 8.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
-        Text(text, style = MaterialTheme.typography.labelLarge, color = if (selected) TvColors.Cyan else TvColors.Muted, maxLines = 1)
+        Text(text, style = MaterialTheme.typography.labelLarge, color = if (selected) TvColors.OnAccent else TvColors.Muted, maxLines = 1)
     }
 }
 @Composable internal fun KeyChip(label: String, enabled: Boolean, modifier: Modifier, glyph: Glyph? = null, onClick: () -> Unit) {
     val color = if (enabled) TvColors.Text else TvColors.Muted.copy(alpha = 0.45f)
-    Box(modifier.heightIn(min = TvDimens.Touch - 8.dp).clip(RoundedCornerShape(16.dp)).background(TvColors.Raised)
-        .border(1.dp, TvColors.Outline, RoundedCornerShape(16.dp)).clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+    val source = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    Box(modifier.heightIn(min = TvDimens.Touch - 8.dp).pressScale(source).clip(RoundedCornerShape(16.dp)).background(TvColors.Raised)
+        .border(1.dp, TvColors.Outline, RoundedCornerShape(16.dp)).clickable(source, LocalIndication.current, enabled = enabled, role = Role.Button, onClick = onClick)
         .then(if (glyph != null) Modifier.semantics { contentDescription = label } else Modifier).padding(horizontal = 4.dp),
         contentAlignment = Alignment.Center) {
         if (glyph != null) GlyphIcon(glyph, Modifier.size(20.dp), color)
@@ -201,8 +205,8 @@ import supertvstreamcast.shared.generated.resources.*
             Column(Modifier.width(96.dp).clip(RoundedCornerShape(20.dp)).background(TvColors.Surface)
                 .border(1.dp, TvColors.Outline, RoundedCornerShape(20.dp)).clickable(role = Role.Button) { actions.launch(app) }.padding(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(TvColors.Cyan.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
-                    Text(app.title.take(1).uppercase(), style = MaterialTheme.typography.titleLarge, color = TvColors.Cyan)
+                Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(TvColors.featureGradient(Feature.entries[app.title.length % Feature.entries.size])), contentAlignment = Alignment.Center) {
+                    Text(app.title.take(1).uppercase(), style = MaterialTheme.typography.titleLarge, color = TvColors.OnAccent)
                 }
                 Text(app.title, style = MaterialTheme.typography.labelMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
             }

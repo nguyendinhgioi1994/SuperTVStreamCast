@@ -14,11 +14,21 @@ enum class RemoteKey {
         val digits = listOf(NUM_1, NUM_2, NUM_3, NUM_4, NUM_5, NUM_6, NUM_7, NUM_8, NUM_9, NUM_0)
     }
 }
-/** [guideId] is the playlist `tvg-id` (or Xtream `epg_channel_id`) used to match XMLTV programmes. */
-data class Channel(val url: String, val title: String, val group: String, val guideId: String = "")
+/**
+ * [guideId] is the playlist `tvg-id` (or Xtream `epg_channel_id`) used to match XMLTV programmes.
+ * [userAgent] / [referer] are HTTP headers the playlist asks players to send for this stream.
+ */
+@kotlinx.serialization.Serializable
+data class Channel(
+    val url: String, val title: String, val group: String, val guideId: String = "",
+    val logo: String = "", val userAgent: String = "", val referer: String = "",
+    /** [ContentKind.SERIES] entries are not playable: [url] is only their identity and episodes are listed on demand. */
+    val kind: ContentKind = ContentKind.LIVE,
+)
 
 /** A TV that answered a vendor protocol probe on the local network. */
-data class TvDevice(val brand: TvBrand, val host: String, val name: String, val model: String = "")
+/** [mac] is the network adapter address when the TV reported one; it is only used for Wake-on-LAN. */
+data class TvDevice(val brand: TvBrand, val host: String, val name: String, val model: String = "", val mac: String = "")
 data class TvApp(val id: String, val title: String)
 /** Verified from the TV's own responses; buttons outside this set stay disabled. */
 data class RemoteCapabilities(
@@ -28,9 +38,11 @@ data class RemoteCapabilities(
     val pointer: Boolean = false,
 )
 /** Brands with an implemented direct-control adapter. Others personalize guidance only. */
-val TvBrand.hasRemoteAdapter get() = this == TvBrand.SONY || this == TvBrand.SAMSUNG || this == TvBrand.LG
+val TvBrand.hasRemoteAdapter get() = this == TvBrand.SONY || this == TvBrand.SAMSUNG || this == TvBrand.LG || this == TvBrand.GOOGLE
 /** Sony uses an IP-control pre-shared key; Samsung/LG pair with an on-screen TV prompt. */
 val TvBrand.needsPsk get() = this == TvBrand.SONY
+/** Google TV shows a code on the TV that has to be typed into the phone. */
+val TvBrand.pairsWithCode get() = this == TvBrand.GOOGLE
 
 fun isLocalIpv4(value: String): Boolean {
     val octets = ipv4Octets(value) ?: return false
@@ -50,48 +62,8 @@ fun subnetHosts(localIp: String): List<String> {
     return (1..254).filter { it != octets[3] }.map { "$prefix.$it" }
 }
 
-/** Bound imports; preserve quoted metadata and ignore non-HTTP protocols. */
-class ParsePlaylistUseCase {
-    operator fun invoke(content: String): List<Channel> {
-        require(content.length <= 2_000_000)
-        val lines = content.removePrefix("﻿").lineSequence().map { it.trim() }
-        require(lines.firstOrNull()?.let { it == "#EXTM3U" || it.startsWith("#EXTM3U ") } == true)
-        val result = linkedMapOf<String, Channel>()
-        var title = ""
-        var group = ""
-        var guideId = ""
-        content.removePrefix("﻿").lineSequence().drop(1).forEach { raw ->
-            val line = raw.trim()
-            when {
-                line.startsWith("#EXTINF:") -> {
-                    var quoted = false
-                    val split = line.indexOfFirst { c -> if (c == '"') quoted = !quoted; c == ',' && !quoted }
-                    title = if (split >= 0) line.substring(split + 1).trim() else ""
-                    group = Regex("group-title=\"([^\"]*)\"").find(line)?.groupValues?.get(1).orEmpty()
-                    guideId = Regex("tvg-id=\"([^\"]*)\"").find(line)?.groupValues?.get(1)?.trim().orEmpty()
-                }
-                line.startsWith("#EXTGRP:") && group.isBlank() -> group = line.removePrefix("#EXTGRP:").trim()
-                line.isNotBlank() && !line.startsWith('#') -> {
-                    if (isStreamUrl(line) && !result.containsKey(line)) {
-                        require(result.size < 5_000)
-                        result[line] = Channel(line, title.ifBlank { line.substringBefore('?').substringAfterLast('/') }, group, guideId)
-                    }
-                    title = ""; group = ""; guideId = ""
-                }
-            }
-        }
-        require(result.isNotEmpty())
-        return result.values.toList()
-    }
-}
-/** XMLTV guide advertised in the `#EXTM3U` header (`url-tvg` / `x-tvg-url`); first HTTP(S) URL only. */
-fun playlistGuideUrl(content: String): String? {
-    val header = content.removePrefix("\uFEFF").lineSequence().firstOrNull()?.trim() ?: return null
-    if (!header.startsWith("#EXTM3U")) return null
-    val value = Regex("(?:url-tvg|x-tvg-url)=\"([^\"]*)\"").find(header)?.groupValues?.get(1) ?: return null
-    return value.split(',').map { it.trim() }.firstOrNull(::isStreamUrl)
-}
-fun isStreamUrl(value: String): Boolean = Regex("https?://[^\\s/]+(?:/[^\\s]*)?", RegexOption.IGNORE_CASE).matches(value)
+private val STREAM_URL = Regex("https?://[^\\s/]+(?:/[^\\s]*)?", RegexOption.IGNORE_CASE)
+fun isStreamUrl(value: String): Boolean = STREAM_URL.matches(value)
 
 /** Groups in first-seen order; blank groups are not listed as a filter. */
 fun channelGroups(channels: List<Channel>): List<String> = channels.map { it.group }.filter { it.isNotBlank() }.distinct()

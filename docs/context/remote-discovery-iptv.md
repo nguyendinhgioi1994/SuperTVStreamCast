@@ -4,19 +4,45 @@ Implemented 08/10/2026 after reviewing what leading remote/IPTV apps offer (Lean
 
 ## Remote adapters
 
-`data/RemoteAdapter.kt` defines `RemoteAdapter` (connect → `RemoteSession(device, capabilities)`, keys, text, apps, launch, optional pointer). `createAdapter` returns an adapter for Sony, Samsung and LG only; other brands keep guidance-only behavior.
+`data/RemoteAdapter.kt` defines `RemoteAdapter` (connect → `RemoteSession(device, capabilities)`, keys, text, apps, launch, optional pointer). `createAdapter` returns an adapter for Sony, Samsung, LG and Google TV / Android TV; other brands keep guidance-only behavior.
 
 | Adapter | Transport | Connected when | Capabilities |
 |---|---|---|---|
 | Sony BRAVIA | HTTP `/sony/system`, IRCC SOAP, `/sony/appControl`; PSK header | `getRemoteControllerInfo` returns codes incl. `Confirm` | Keys whose IRCC name the TV reported; text (`setTextForm`); apps (`getApplicationList`/`setActiveApp`) |
 | Samsung Tizen | `GET :8001/api/v2/` then WebSocket remote channel (`wss://:8002` when `TokenAuthSupport`, else `ws://:8001`) | TV sends `ms.channel.connect` after the viewer allows the request; `ms.channel.unauthorized/timeOut` fails | All mapped keys, text (`SendInputString`), installed apps / launch |
 | LG webOS | SSAP WebSocket (`wss://:3001`, fallback `ws://:3000` only when TLS socket cannot open) | `registered` with a client key after on-screen approval; `error` fails | SSAP keys (power off, volume, channel, media) with acknowledged responses; pointer-socket buttons/D-pad/numbers and cursor mode when the pointer socket opens; text (IME), launch points |
+| Google TV / Android TV | Android TV Remote Service v2: TLS with this phone's client certificate, length-prefixed protobuf; pairing on `:6467`, control on `:6466` | Pairing: the 6-hex-digit code shown on the TV yields a SHA-256 over both RSA public keys that the TV acknowledges. Control: the TV whose certificate was pinned at pairing sends `remote_configure` and then `remote_set_active`/`remote_start` | All mapped keys as Android `KeyEvent` codes (short press). No text entry, no app list/launch, no pointer |
 
-Protocol messages/parsers are pure functions in `domain/RemoteProtocols.kt`. Unsupported keys are disabled in the UI (`TvUiState.can`). Remote commands run sequentially on a mutex without blocking the UI; any command failure disconnects and shows a localized error instead of assuming the TV is still connected. Samsung key presses have no protocol acknowledgement; LG SSAP and Sony IRCC/HTTP failures are detected.
+Protocol messages/parsers are pure functions in `domain/RemoteProtocols.kt` and `domain/GoogleTvProtocol.kt` (protobuf wire format, SHA-256 and DER helpers in `domain/Encoding.kt`). Unsupported keys are disabled in the UI (`TvUiState.can`). Remote commands run sequentially on a mutex without blocking the UI; any command failure disconnects and shows a localized error instead of assuming the TV is still connected. Samsung key presses have no protocol acknowledgement; LG SSAP and Sony IRCC/HTTP failures are detected.
 
-Pairing tokens/client keys and PSK are memory-only for the app session. The last successfully connected TV is stored as `BRAND|host|name` (no secret) to prefill the address.
+The last successfully connected TV is stored as `BRAND|host|name` (no secret) to prefill the address.
 
-TLS: TVs use self-signed certificates. `net/LocalNetwork.kt` `pinnedLocalClient(host)` accepts TLS only for that RFC1918 host and pins the first leaf certificate for the client lifetime (trust on first use, per session; Android `X509TrustManager` + host interceptor, iOS Darwin challenge handler). Clients are closed on disconnect. There is no global TLS bypass; internet traffic uses default clients.
+## Google TV pairing flow
+
+`GoogleTvAdapter.connect(host, "")` first tries the control port when a certificate pin exists for that address. Without a pin, or when that attempt fails (TV reset, certificate changed, client certificate no longer trusted), it runs the pairing exchange until the TV displays its code and throws `PairingCodeRequired`; the pairing socket stays open. `TvViewModel` keeps that adapter, sets `codeRequested`, and the connection dialog shows a code field. `connect(host, code)` continues the same session: a code whose check byte does not match throws `PairingCodeInvalid` locally (`UiError.PAIRING_CODE`, session kept for another try); otherwise the secret is sent, and only after the TV's `secret_ack` is the TV certificate's SHA-256 pinned and the control connection opened. Closing the dialog or changing brand drops the pairing session. A session reader answers the TV's pings; when the stream ends the next command fails and the UI reports the lost connection.
+
+Google TVs are not found by the /24 scan (probing the pairing port would make every TV show a code); the address is typed in. mDNS `_androidtvremote2._tcp` is still to do.
+
+## Stored secrets (`platform/SecretStore`)
+
+| Key | Value | Written when |
+|---|---|---|
+| `samsung.token.<host>` | Samsung pairing token | TV sends `ms.channel.connect` with a token |
+| `lg.key.<host>` | LG client key | TV sends `registered` |
+| `google.cert.<host>` | SHA-256 of the Google TV certificate | TV acknowledges the pairing secret |
+| `mac.<host>` | TV network adapter address | A connected TV reported one (Wake-on-LAN) |
+
+Android: AES-256-GCM with a key generated in the Android Keystore, ciphertext in the private `tv_space_secrets` preferences. iOS: generic-password Keychain items, `AfterFirstUnlockThisDeviceOnly`. A value that cannot be decrypted reads as absent, which leads to a fresh pairing prompt. Entries are keyed by IP address: if DHCP gives that address to another TV, the stored token is offered to it, that TV rejects it and asks to pair again. Sony's PSK and Xtream logins are still session-only. Settings → "Forget paired TVs" clears the store and the last-TV entry; the privacy text states what is kept.
+
+The phone's Google TV identity is a 2048-bit RSA key with a self-signed `CN=atvremote` certificate: generated by the Android Keystore (non-exportable, alias `tv_space_remote_identity`), or on iOS by `SecKeyCreateRandomKey` in the Keychain with the certificate built by `Der.selfSignedCertificate` and signed by that key. "Forget paired TVs" keeps this identity; TVs that were paired still list it until removed on the TV.
+
+## Wake-on-LAN
+
+The adapter address comes from the TV itself: Samsung `device.wifiMac`, LG `getCurrentSWInformation.device_id`, Sony `getNetworkSettings.hwAddr` (best effort; a TV that does not report one simply has no wake button). Google TV exposes none. When an address is stored for the typed IP, the connection dialog shows "Turn TV on (Wake-on-LAN)": `TvViewModel.wake` sends the magic packet three times to the /24 broadcast address and to `255.255.255.255` on UDP port 9. Nothing answers a magic packet, so the UI only says the signal was sent and asks the user to connect; it never reports the TV as on.
+
+iOS needs the `com.apple.developer.networking.multicast` entitlement (granted by Apple on request) to send broadcast datagrams on a real device; without it `sendto` fails and the UI shows the wake error. The entitlement is not configured yet.
+
+TLS (Samsung/LG WebSockets): TVs use self-signed certificates. `net/LocalNetwork.kt` `pinnedLocalClient(host)` accepts TLS only for that RFC1918 host and pins the first leaf certificate for the client lifetime (trust on first use, per session; Android `X509TrustManager` + host interceptor, iOS Darwin challenge handler). Clients are closed on disconnect. There is no global TLS bypass; internet traffic uses default clients. Google TV uses `net/TvTls` (`openTvTls`): a raw TLS socket to an RFC1918 address only (Android `SSLSocket` limited to TLS 1.2, iOS Network.framework) that presents the phone identity and does not validate the TV chain itself; `GoogleTvAdapter` compares the leaf with the pinned fingerprint before reading or sending anything on the control port.
 
 ## Discovery
 

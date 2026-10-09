@@ -10,7 +10,7 @@ Onboarding complete/brand/goal are local preferences (Android SharedPreferences,
 
 System screen sharing: Android opens Cast settings and reports unavailable activities; iOS explains Control Center Screen Mirroring. No active session indicator is fabricated. Direct remote adapters exist for Sony BRAVIA (IP control + PSK), Samsung Tizen and LG webOS (on-screen pairing). Other brands have explicit development messages.
 
-UI uses original hero WebP, scalable navigation icons and original launcher assets. Existing wizard greeting files/tests remain unrelated scaffolding. No sibling code or tuntech module was copied. Current translation scope EN/VI; international release expansion tracked in the roadmap.
+UI uses original hero WebP, scalable navigation icons and original launcher assets. Existing wizard greeting files/tests remain unrelated scaffolding. The tuntech modules are consumed whole as git submodules (see entry-flow.md); none of their files are copied or edited here. Current translation scope EN/VI; international release expansion tracked in the roadmap.
 
 Transport currently allows HTTP for local TV and user-supplied HTTP media (Android cleartext enabled; iOS ATS arbitrary loads enabled). Before production, restrict transport policies where model/stream requirements allow, and move custom native mirroring permissions/services into their dedicated phase.
 

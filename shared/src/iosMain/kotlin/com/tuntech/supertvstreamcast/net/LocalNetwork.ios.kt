@@ -9,6 +9,10 @@ import io.ktor.client.plugins.websocket.WebSockets
 import kotlinx.cinterop.*
 import platform.Foundation.*
 import platform.Security.*
+import platform.darwin.freeifaddrs
+import platform.darwin.getifaddrs
+import platform.darwin.ifaddrs
+import platform.darwin.inet_ntop
 import platform.posix.*
 
 actual fun pinnedLocalClient(host: String): HttpClient {

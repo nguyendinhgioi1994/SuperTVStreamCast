@@ -18,7 +18,7 @@ private class FakeSocket(val url: String, private val reply: (String) -> List<St
     override suspend fun receive(): String = inbox.receive()
     override fun close() { closed = true; inbox.close() }
 }
-private val samsungInfo = """{"device":{"type":"Samsung SmartTV","name":"Living room","modelName":"QE55","TokenAuthSupport":"true"}}"""
+private val samsungInfo = """{"device":{"type":"Samsung SmartTV","name":"Living room","modelName":"QE55","TokenAuthSupport":"true","wifiMac":"a0:b1:c2:d3:e4:f5"}}"""
 
 class AdapterTest {
     @Test fun samsungConnectsOnlyAfterTvAcceptsAndReusesToken() = runTest {
@@ -37,6 +37,27 @@ class AdapterTest {
         assertFailsWith<IllegalStateException> { adapter.send(RemoteKey.HOME) }
         adapter.connect("192.168.1.9", "")
         assertTrue(sockets[1].url.endsWith("&token=777"))
+    }
+    @Test fun pairingTokensSurviveInTheSecretStoreAndReportWakeAddress() = runTest {
+        val secrets = com.tuntech.supertvstreamcast.platform.MemorySecretStore()
+        val urls = mutableListOf<String>()
+        fun samsung() = SamsungTizenAdapter(HttpClient(MockEngine { respond(samsungInfo, HttpStatusCode.OK) }), secrets) { _, url ->
+            urls += url
+            FakeSocket(url, initial = listOf("""{"event":"ms.channel.connect","data":{"token":"777"}}"""))
+        }
+        assertEquals("a0:b1:c2:d3:e4:f5", samsung().connect("192.168.1.9", "").device.mac)
+        assertEquals("777", secrets.get("samsung.token.192.168.1.9"))
+        samsung().connect("192.168.1.9", "")
+        assertTrue(urls[1].endsWith("&token=777"))
+
+        val opened = mutableListOf<FakeSocket>()
+        fun lg() = LgWebOsAdapter(secrets, lgTv("""{"type":"registered","id":"register_0","payload":{"client-key":"ck"}}""", opened))
+        assertEquals("", lg().connect("192.168.1.7", "").device.mac)
+        val before = opened.size
+        lg().connect("192.168.1.7", "")
+        assertTrue(opened[before].sent.first().contains("\"client-key\":\"ck\""))
+        secrets.clear()
+        assertNull(secrets.get("lg.key.192.168.1.7"))
     }
     @Test fun samsungDeniedPairingFailsAndClosesSocket() = runTest {
         var socket: FakeSocket? = null
@@ -80,7 +101,7 @@ class AdapterTest {
     }
     @Test fun lgRegistersUsesPointerSocketAndChecksResponses() = runTest {
         val opened = mutableListOf<FakeSocket>()
-        val adapter = LgWebOsAdapter(lgTv("""{"type":"registered","id":"register_0","payload":{"client-key":"ck"}}""", opened, wssFails = true))
+        val adapter = LgWebOsAdapter(open = lgTv("""{"type":"registered","id":"register_0","payload":{"client-key":"ck"}}""", opened, wssFails = true))
         val session = adapter.connect("192.168.1.7", "")
         assertTrue(session.capabilities.pointer)
         assertEquals("ws://192.168.1.7:3000", opened[0].url)
@@ -95,7 +116,7 @@ class AdapterTest {
     }
     @Test fun lgRejectedRegistrationNeverConnects() = runTest {
         val opened = mutableListOf<FakeSocket>()
-        val adapter = LgWebOsAdapter(lgTv("""{"type":"error","id":"register_0","error":"403 cancelled"}""", opened))
+        val adapter = LgWebOsAdapter(open = lgTv("""{"type":"error","id":"register_0","error":"403 cancelled"}""", opened))
         assertFailsWith<IllegalStateException> { adapter.connect("192.168.1.7", "") }
         assertTrue(opened.single().closed)
         assertEquals("wss://192.168.1.7:3001", opened.single().url)

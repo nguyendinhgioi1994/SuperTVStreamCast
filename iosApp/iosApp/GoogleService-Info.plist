@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Placeholder so Firebase can start with bundled Remote Config defaults. Replace with the
+	     file downloaded from TV Space's own Firebase project. -->
+	<key>API_KEY</key>
+	<string>AIzaSyPLACEHOLDER_NOT_A_REAL_API_KEY_00</string>
+	<key>GCM_SENDER_ID</key>
+	<string>000000000000</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.tuntech.supertvstreamcast.SuperTVStreamCast</string>
+	<key>PROJECT_ID</key>
+	<string>tv-space-placeholder</string>
+	<key>STORAGE_BUCKET</key>
+	<string>tv-space-placeholder.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false/>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false/>
+	<key>IS_APPINVITE_ENABLED</key>
+	<false/>
+	<key>IS_GCM_ENABLED</key>
+	<false/>
+	<key>IS_SIGNIN_ENABLED</key>
+	<false/>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:000000000000:ios:0000000000000000000000</string>
+</dict>
+</plist>

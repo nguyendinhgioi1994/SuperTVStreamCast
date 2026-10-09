@@ -19,8 +19,11 @@ class SonyBraviaAdapter(private val client: HttpClient) : RemoteAdapter {
         val discovered = SonyProtocol.codes(api(host, secret, "system", SonyProtocol.request("getRemoteControllerInfo")))
         check(discovered.containsKey("Confirm"))
         val device = runCatching { SonyProtocol.identity(host, api(host, "", "system", SonyProtocol.request("getInterfaceInformation"))) }.getOrNull()
+        val mac = try {
+            SonyProtocol.mac(api(host, secret, "system", SonyProtocol.request("getNetworkSettings", buildJsonArray { addJsonObject { put("netif", "") } })))
+        } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (_: Exception) { "" }
         ip = host; psk = secret; codes = discovered
-        return RemoteSession(device ?: TvDevice(TvBrand.SONY, host, TvBrand.SONY.title), SonyProtocol.capabilities(discovered))
+        return RemoteSession((device ?: TvDevice(TvBrand.SONY, host, TvBrand.SONY.title)).copy(mac = mac), SonyProtocol.capabilities(discovered))
     }
     override suspend fun send(key: RemoteKey) {
         val code = SonyProtocol.code(codes, key) ?: error("Unsupported key")

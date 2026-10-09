@@ -81,7 +81,7 @@ class RemoteProtocolTest {
         assertEquals(3,withRecent(listOf("a","b","c"),"d",limit=3).size)
     }
     @Test fun extGrpProvidesGroupWhenExtinfHasNone() {
-        val channels=ParsePlaylistUseCase()("#EXTM3U\n#EXTINF:-1,Live\n#EXTGRP:Movies\nhttps://example.com/live\n")
+        val channels=ParsePlaylistUseCase()("#EXTM3U\n#EXTINF:-1,Live\n#EXTGRP:Movies\nhttps://example.com/live\n").channels
         assertEquals("Movies",channels.single().group)
     }
     @Test fun swipesMapToDominantAxisAndIgnoreTaps() {
