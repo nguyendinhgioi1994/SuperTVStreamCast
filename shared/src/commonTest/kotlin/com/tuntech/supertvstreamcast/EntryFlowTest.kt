@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.navigation3.runtime.NavKey
 import com.tuntech.supertvstreamcast.constant.IapConstant
 import com.tuntech.supertvstreamcast.data.repository.AppSettingRepository
+import com.tuntech.supertvstreamcast.domain.AppLanguage
 import com.tuntech.supertvstreamcast.domain.Feature
 import com.tuntech.supertvstreamcast.domain.TvBrand
 import com.tuntech.supertvstreamcast.platform.AppPreferences
@@ -38,7 +39,7 @@ private class MemoryPreferences : AppPreferences {
 
 class EntryFlowTest {
     @Test fun entryScreensNeverShowAds() {
-        listOf(Screen.Splash(), Screen.Onboarding, Screen.Paywall(), Screen.Paywall2()).forEach { assertTrue(it.skipAds, it.name) }
+        listOf(Screen.Splash(), Screen.Language(), Screen.Language(isInitial = false), Screen.Onboarding, Screen.Paywall(), Screen.Paywall2()).forEach { assertTrue(it.skipAds, it.name) }
         assertFalse(Screen.Dashboard().skipAds)
     }
 
@@ -51,7 +52,7 @@ class EntryFlowTest {
     @Test fun backStackKeysSurviveSerialization() {
         val json = Json { serializersModule = AppNavConfiguration.serializersModule }
         val serializer = PolymorphicSerializer(NavKey::class)
-        listOf(Screen.Splash(isInitial = false), Screen.Onboarding, Screen.Dashboard(isPaywallClosed = true),
+        listOf(Screen.Splash(isInitial = false), Screen.Language(isInitial = false), Screen.Onboarding, Screen.Dashboard(isPaywallClosed = true),
             Screen.Paywall(isInitial = false, source = IapConstant.IAP_SOURCE_SETTING)).forEach { screen ->
             assertEquals<NavKey>(screen, json.decodeFromString(serializer, json.encodeToString(serializer, screen)))
         }
@@ -85,5 +86,23 @@ class EntryFlowTest {
         val state = OnboardingViewModel(AppSettingRepository(MemoryDataStore()), prefs, kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined)).state.value
         assertEquals(TvBrand.SONY, state.brand)
         assertEquals(Feature.MIRROR, state.goal)
+    }
+
+    @Test fun languageFollowsChoiceThenDevice() {
+        assertEquals(AppLanguage.VIETNAMESE, AppLanguage.resolve("vi", "en-US"))
+        assertEquals(AppLanguage.VIETNAMESE, AppLanguage.resolve(null, "vi-VN"))
+        assertEquals(AppLanguage.VIETNAMESE, AppLanguage.resolve("", "vi_VN"))
+        assertEquals(AppLanguage.ENGLISH, AppLanguage.resolve(null, "en_GB"))
+        assertEquals(AppLanguage.JAPANESE, AppLanguage.resolve("ja", "vi"))
+        assertEquals(AppLanguage.CHINESE, AppLanguage.resolve(null, "zh-Hans-CN"))
+        assertEquals(AppLanguage.ENGLISH, AppLanguage.resolve(null, "it-IT"))
+    }
+
+    @Test fun legacyLanguageCodesMapToShippedLanguages() {
+        assertEquals(AppLanguage.INDONESIAN, AppLanguage.resolve(null, "in_ID"))
+        assertEquals(AppLanguage.FILIPINO, AppLanguage.resolve(null, "tl-PH"))
+        assertEquals(AppLanguage.FILIPINO, AppLanguage.resolve("fil", "en"))
+        // Every shipped language resolves to itself.
+        AppLanguage.entries.forEach { assertEquals(it, AppLanguage.resolve(it.code, "en")) }
     }
 }

@@ -54,7 +54,7 @@ fun AppLifecycleObserver(
     val lifecycleObserver = object : AppLifecycleListener {
         override fun onStart() {
             val topScreen = appState.currentScreen ?: return
-            if (appState.context == null || topScreen.skipAds) {
+            if (appState.context == null || topScreen.skipAds || !AppOpenAdGate.allow()) {
                 return
             }
 

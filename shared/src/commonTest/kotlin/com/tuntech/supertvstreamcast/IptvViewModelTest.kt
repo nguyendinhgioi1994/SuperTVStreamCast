@@ -25,6 +25,7 @@ class IptvViewModelTest {
     private val secrets=MemorySecretStore()
     private var clock=1_000_000L
     private val models=mutableListOf<IptvViewModel>()
+    private val events=mutableListOf<Pair<String,Map<String,String>>>()
     private val playlist="#EXTM3U\n#EXTINF:-1 group-title=\"News\",One\nhttps://e.com/1.m3u8\n#EXTINF:-1 group-title=\"Films\",Film\nhttps://e.com/film.mp4\n"
 
     /**
@@ -43,7 +44,7 @@ class IptvViewModelTest {
     }
     private fun TestScope.store(): IptvStore=IptvStore({directory.toString()},IptvCipher(secrets),dispatcher=UnconfinedTestDispatcher(testScheduler))
     private fun TestScope.model(respond: MockRequestHandler={respond(playlist,HttpStatusCode.OK)}): IptvViewModel=
-        IptvViewModel(store(),TvRepository(HttpClient(MockEngine(respond))),{clock}).also {models+=it}
+        IptvViewModel(store(),TvRepository(HttpClient(MockEngine(respond))),{clock},{name,params->events+=name to params}).also {models+=it}
     private suspend fun IptvViewModel.await(condition: (IptvUiState)->Boolean): IptvUiState=state.first(condition)
     private suspend fun IptvViewModel.ready(): IptvUiState=await{it.loaded&&!it.busy}
 
@@ -134,6 +135,29 @@ class IptvViewModelTest {
         assertEquals(IptvScreen.Hub,model.state.value.screen)
         assertFalse(model.state.value.canGoBack)
     }
+    @Test fun featureUsedIsLoggedWhenThePlayerReallyStartsOncePerPlay() = vmTest {
+        val model=model()
+        model.ready()
+        model.addPlaylist("https://e.com/list.m3u")
+        val channels=model.await{it.channels.size==2&&!it.busy}.channels
+        val (live,film)=channels
+        model.play(live,channels)
+        // Asking to play is not a use; neither is a start reported for another channel.
+        model.started(film.url)
+        assertTrue(events.none{it.first=="feature_used"})
+        model.started(live.url)
+        model.started(live.url)
+        model.play(film,channels)
+        model.started(film.url)
+        model.closePlayer()
+        model.started(film.url)
+        assertEquals(listOf(
+            mapOf("feature" to "iptv","kind" to "live","type" to "playlist"),
+            mapOf("feature" to "iptv","kind" to "movie","type" to "playlist"),
+        ),events.filter{it.first=="feature_used"}.map{it.second})
+        assertTrue(events.flatMap{it.second.values}.none{"e.com" in it||"One" in it})
+    }
+
     @Test fun hiddenChannelsNeedThePasscodeAndDeletingASourceForgetsItsChannels() = vmTest {
         val model=model()
         model.ready()
@@ -169,20 +193,20 @@ class IptvViewModelTest {
         model.access(premium=false,limits=IptvLimits(maxSources=1,dailyWatchSeconds=20))
         model.addPlaylist("https://e.com/a.m3u")
         val channels=model.await{it.sources.size==1&&!it.busy}.channels
-        assertFalse(model.state.value.premiumRequired)
+        assertNull(model.state.value.premiumRequired)
         model.addPlaylist("https://e.com/b.m3u")
-        assertTrue(model.state.value.premiumRequired)
+        assertEquals(PremiumFeature.IPTV_SOURCES,model.state.value.premiumRequired)
         assertEquals(1,model.state.value.sources.size)
         model.clearPremiumRequired()
         model.addStream("https://e.com/live.m3u8","")
-        assertTrue(model.state.value.premiumRequired)
+        assertEquals(PremiumFeature.IPTV_SOURCES,model.state.value.premiumRequired)
         model.clearPremiumRequired()
         // Playback is counted while something plays and stops at the daily limit.
         model.play(channels[0],channels)
         assertNotNull(model.state.value.player)
         testScheduler.advanceTimeBy(25_000)
         assertNull(model.state.value.player)
-        assertTrue(model.state.value.premiumRequired)
+        assertEquals(PremiumFeature.IPTV_WATCH_TIME,model.state.value.premiumRequired)
         model.clearPremiumRequired()
         model.play(channels[0],channels)
         assertNull(model.state.value.player)
@@ -196,10 +220,31 @@ class IptvViewModelTest {
         model.addPlaylist("https://e.com/b.m3u")
         assertEquals(2,model.await{it.sources.size==2&&!it.busy}.sources.size)
     }
+    @Test fun rewardedGrantsAddWatchTimeAndASourceSlot() = vmTest {
+        val model=model()
+        model.ready()
+        model.access(premium=false,limits=IptvLimits(maxSources=1,dailyWatchSeconds=20))
+        model.addPlaylist("https://e.com/a.m3u")
+        val channels=model.await{it.sources.size==1&&!it.busy}.channels
+        model.play(channels[0],channels)
+        testScheduler.advanceTimeBy(25_000)
+        assertEquals(PremiumFeature.IPTV_WATCH_TIME,model.state.value.premiumRequired)
+        model.clearPremiumRequired()
+        model.grantWatchTime(20)
+        model.play(channels[0],channels)
+        assertNotNull(model.state.value.player)
+        model.closePlayer()
+        model.grantSources(1)
+        model.addPlaylist("https://e.com/b.m3u")
+        assertEquals(2,model.await{it.sources.size==2&&!it.busy}.sources.size)
+        assertNull(model.state.value.premiumRequired)
+        model.addPlaylist("https://e.com/c.m3u")
+        assertEquals(PremiumFeature.IPTV_SOURCES,model.state.value.premiumRequired)
+    }
     @Test fun linksFromOutsideWaitForConfirmationAndRemindersAreKept() = vmTest {
         val model=model()
         model.ready()
-        model.offerImport("tvspace://import-playlist?name=Shared&url=https%3A%2F%2Fe.com%2Fshared.m3u")
+        model.offerImport("supertvcast://import-playlist?name=Shared&url=https%3A%2F%2Fe.com%2Fshared.m3u")
         assertEquals(ImportRequest("Shared","https://e.com/shared.m3u"),model.state.value.pendingImport)
         assertTrue(model.state.value.sources.isEmpty())
         model.acceptImport()

@@ -13,8 +13,8 @@ Implemented 09/10/2026 after comparing the IPTV tab with `../iptv_kmp` feature b
 - **Favorites, Continue watching, Hidden**: one list each across all sources, with search and **Clear all**. They survive a re-sync of the source.
 - **Hidden channels** disappear from every list. They are behind a 4-digit passcode page (create and confirm on first use, change from the Hidden list). There is no recovery and no way to turn the lock off.
 - **Programme list**: per channel, upcoming programmes by local day and time with the one on air highlighted. The provider's guide loads by itself the first time a source is opened in a session.
-- **Player**: the list the channel was opened from sits under the video for switching; previous/next, favorite, programme list, and on Android a full-screen button (landscape, system bars hidden; Back leaves full screen first). iPhone rotates on its own.
-- **Shared links**: `tvspace://import-playlist?name=…&url=…` opens the app on the IPTV tab and asks before anything is downloaded; only the name and host are shown.
+- **Player**: the list the channel was opened from sits under the video for switching; previous/next, favorite, programme list, and on Android a full-screen button (landscape, system bars hidden; Back leaves full screen first). iPhone is portrait-only (`INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone`), AVKit full screen included: in Compose Multiplatform 1.12 a size transition interrupted by background/PiP leaves the scene and window size frozen, so dialogs and sheets were laid out with the landscape size (offset to the top-right and clipped) until restart. iPad still rotates.
+- **Shared links**: `supertvcast://import-playlist?name=…&url=…` opens the app on the IPTV tab and asks before anything is downloaded; only the name and host are shown.
 
 ## Storage and privacy
 
@@ -40,13 +40,13 @@ Tests: `commonTest/IptvLibraryTest.kt` (library lists, history bound, resume rul
 
 ## Verification (09/10/2026)
 
-Android debug APK, `testAndroidHostTest`, iOS simulator compile, framework link and Xcode simulator build pass. On the iOS simulator the app starts and the `tvspace://` scheme is offered to it, but the run stopped at the consent form and onboarding. **The IPTV screens were not exercised at runtime**: none of the screens above were opened, and no real playlist, Xtream panel, resume, full-screen switch or shared link was exercised. `IptvViewModel` has no unit test of its own.
+Android debug APK, `testAndroidHostTest`, iOS simulator compile, framework link and Xcode simulator build pass. On the iOS simulator the app starts and the `supertvcast://` scheme is offered to it, but the run stopped at the consent form and onboarding. **The IPTV screens were not exercised at runtime**: none of the screens above were opened, and no real playlist, Xtream panel, resume, full-screen switch or shared link was exercised. `IptvViewModel` has no unit test of its own.
 
 ## Second round (09/10/2026)
 
 - **Sealed files**: `data/IptvCipher.kt` encrypts `index.json` and every catalog with AES-256-CTR and authenticates them with HMAC-SHA256. The key is created on first use and kept in its own Keystore / Keychain store (`iptvSecretStore`), separate from the remote-control pairing secrets, so "Forget paired TVs" does not touch it. Without the key (app data restored elsewhere, Keychain wiped) the library reads as empty. Files saved before sealing existed are still read and are sealed on the next save.
 - **Day guide** (`ui/iptv/IptvGuide.kt`, `IptvScreen.Guide`): opened from the guide banner once a guide is loaded. A time grid (channels down, 36 hours across, shared horizontal scroll, now line) or a now-and-next list, with channel search.
-- **Reminders**: tapping a programme that has not started offers "when it starts" or 5 / 10 / 15 / 30 / 60 minutes before. `platform/ReminderScheduler`: Android `AlarmManager` (inexact) + `ReminderReceiver`, asking for `POST_NOTIFICATIONS` at that point; iOS `UNUserNotificationCenter`. Reminders are saved in the index; on Android the alarms themselves are lost on a device restart.
+- **Reminders**: tapping a programme that has not started offers "when it starts" or 5 / 10 / 15 / 30 / 60 minutes before. `platform/ReminderScheduler`: Android `AlarmManager` (inexact) + `ReminderReceiver`, asking for `POST_NOTIFICATIONS` at that point; iOS `UNUserNotificationCenter`. Reminders are saved in the index. Android alarms do not survive a restart, so each armed alarm is also kept in the private preferences file `tv_guide_reminders` (id → time, programme title, notification text; not sealed — it holds no link or login) and `ReminderReceiver` re-arms the future ones on `BOOT_COMPLETED` / `MY_PACKAGE_REPLACED` (11/10/2026, `RECEIVE_BOOT_COMPLETED`); an entry is removed when it fires or is cancelled.
 - **Player**: one native player (`rememberVideo`, a movable composable) shared by the full player and a **mini player** that floats over the IPTV screens; Back shrinks the full player, its close button stops playback, leaving the IPTV tab stops it. **Fill screen** toggle. Android: **picture-in-picture** button, subtitle button on the stock controls, and **Chromecast** through Media3 `CastPlayer` with the Default Media Receiver (request headers a playlist asks for do not reach the receiver). iOS keeps AVKit's own AirPlay and picture-in-picture buttons; `UIBackgroundModes: audio` was added for them.
 - **QR**: source details show the share link as a QR code (qrose); **Scan QR code** in the add menu reads one with the camera (CameraK, camera permission asked there) and then asks before importing, like a shared link.
 - **Free tier**: Remote Config `IPTV_SETTINGS` = `{maximumSources, maximumWatchSeconds}`; 0 means unlimited and both ship as 0. Over a limit the paywall opens (`IapConstant.IAP_SOURCE_IPTV_LIMIT`). Premium users have no limits.
@@ -61,4 +61,3 @@ None of this round was run on a device either: reminders firing, picture-in-pict
 - Separate EPG sources tab, a date picker beyond the 36 hours the guide keeps, and the iptv-org lookup backend.
 - Source sync to a TV by code (needs a backend), Android TV / Apple TV apps.
 - Premium gate for hiding channels, one row per `group-title` group, the Remote Config URL blacklist / keyword map.
-- Rescheduling reminders after an Android restart.

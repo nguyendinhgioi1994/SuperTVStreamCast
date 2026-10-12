@@ -147,7 +147,7 @@ data class PasscodeFlow(val purpose: PasscodePurpose, val step: PasscodeStep, va
 
 /** A playlist handed over by a share link, a QR code or another app. */
 data class ImportRequest(val name: String, val url: String)
-const val IMPORT_SCHEME = "tvspace"
+const val IMPORT_SCHEME = "supertvcast"
 fun buildImportLink(name: String, url: String) = "$IMPORT_SCHEME://import-playlist?name=${encodeUrlPart(name)}&url=${encodeUrlPart(url)}"
 /** Accepts the app's own import link or a plain HTTP(S) playlist link. */
 fun parseImportLink(text: String): ImportRequest? {
@@ -179,9 +179,10 @@ fun reminderOffsets(start: Long, now: Long): List<Int> = listOf(0, 5, 10, 15, 30
 /**
  * Free-tier limits from Remote Config `IPTV_SETTINGS`; 0 means unlimited. Premium users have none.
  * [maxSources] counts saved sources of any kind, [dailyWatchSeconds] the playback time per day.
+ * [extraSources] are slots earned with a rewarded ad this session.
  */
 data class IptvLimits(val maxSources: Int = 0, val dailyWatchSeconds: Int = 0) {
-    fun canAddSource(saved: Int, premium: Boolean) = premium || maxSources <= 0 || saved < maxSources
+    fun canAddSource(saved: Int, premium: Boolean, extraSources: Int = 0) = premium || maxSources <= 0 || saved < maxSources + extraSources
     fun canWatch(watchedToday: Int, premium: Boolean) = premium || dailyWatchSeconds <= 0 || watchedToday < dailyWatchSeconds
 }
 /** Unreadable or missing settings mean no limits rather than a locked app. */

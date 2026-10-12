@@ -20,7 +20,7 @@ private fun adActionTheme(): AdActionTheme = AdActionTheme(
     textColor = TvColors.OnAccent,
 )
 
-/** Native / banner ads on the active TV Space palette. */
+/** Native / banner ads on the active Super TV Cast palette. */
 @Composable
 fun TvAdTheme(
     content: @Composable () -> Unit,

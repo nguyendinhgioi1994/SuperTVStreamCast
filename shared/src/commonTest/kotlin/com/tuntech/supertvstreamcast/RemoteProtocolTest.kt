@@ -30,8 +30,8 @@ class RemoteProtocolTest {
         val text=json(SamsungProtocol.text("hi")).getValue("params").jsonObject
         assertEquals("aGk=",text["Cmd"]?.jsonPrimitive?.content)
         assertEquals("SendInputString",text["TypeOfRemote"]?.jsonPrimitive?.content)
-        assertEquals("wss://192.168.1.9:8002/api/v2/channels/samsung.remote.control?name=VFYgU3BhY2U=&token=42",SamsungProtocol.url("192.168.1.9",true,"42"))
-        assertEquals("ws://192.168.1.9:8001/api/v2/channels/samsung.remote.control?name=VFYgU3BhY2U=",SamsungProtocol.url("192.168.1.9",false,null))
+        assertEquals("wss://192.168.1.9:8002/api/v2/channels/samsung.remote.control?name=U3VwZXIgVFYgQ2FzdA==&token=42",SamsungProtocol.url("192.168.1.9",true,"42"))
+        assertEquals("ws://192.168.1.9:8001/api/v2/channels/samsung.remote.control?name=U3VwZXIgVFYgQ2FzdA==",SamsungProtocol.url("192.168.1.9",false,null))
     }
     @Test fun samsungInfoAndEventsAreParsed() {
         val info=SamsungProtocol.info("192.168.1.9","""{"device":{"type":"Samsung SmartTV","name":"Living room","modelName":"QE55Q80","TokenAuthSupport":"true"}}""")

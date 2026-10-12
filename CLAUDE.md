@@ -1,4 +1,4 @@
-# TV Space development rules
+# Super TV Cast development rules
 
 Inherited architecture/design principles from `../PetTranslator/CLAUDE.md`; flow reference `../ElectronicsRepair`. See `docs/plans/ROADMAP.md` for adaptation and remaining work.
 
@@ -6,7 +6,7 @@ Inherited architecture/design principles from `../PetTranslator/CLAUDE.md`; flow
 - Entry flow (Splash → Onboarding → Paywall → Dashboard, Koin, Navigation 3) follows Smart Printer / Cam Scanner; see `docs/context/entry-flow.md`. Firebase, Qonversion and AdMob ids are placeholders until the real projects exist.
 - UI → domain → repository; platform APIs only in platform source sets. ViewModel exposes StateFlow; children receive values and callbacks.
 - Externalize app strings. Development EN/VI; complete 13 template locales before international release. No text baked into imagery.
-- Use TvColors/TvDimens and Material typography. Artwork WebP, UI icons scalable, source launcher SVG kept in design/.
+- Use TvColors/TvDimens and Material typography. Artwork WebP, UI icons scalable, launcher source render kept in design/.
 - Never claim support or connection without a successful protocol response. Native Cast settings/AirPlay instructions are not a custom mirroring engine.
 - Sony manual IP only on RFC1918; PSK session-only; no credential/playlist URL logging. IPTV content is supplied by the user.
 - Do not copy sibling project code or alter tuntech submodules. Import whole modules unchanged when needed. No imported Firebase/ad IDs/secrets.

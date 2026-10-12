@@ -31,6 +31,14 @@ enum class TvThemeMode { SYSTEM, LIGHT, DARK }
     val backgroundTop: Color, val backgroundBottom: Color,
     val surfaceTop: Color, val remoteTop: Color, val remoteBottom: Color,
     val pink: Color, val amber: Color, val green: Color,
+    val remoteBodyTop: Color, val remoteBodyBottom: Color, val remoteEdge: Color,
+    val remoteKeyTop: Color, val remoteKeyBottom: Color, val remoteInk: Color, val remoteMuted: Color,
+    val remoteHighlight: Color, val remoteShadow: Color, val remotePower: Color,
+    val remoteGlossTop: Color, val remoteGlossBottom: Color, val remoteMetal: Color, val remoteLed: Color,
+    /** Ink on the power key; [remoteInk] elsewhere. */
+    val remoteOnPower: Color,
+    /** Pearl sheen washed over the light remote's crown and D-pad ring; empty on the black remote. */
+    val remotePearl: List<Color>,
     /** Vivid stops that always carry [onAccent] content: the brand gradient and one pair per feature. */
     val brand: List<Color>,
     val home: List<Color>, val remote: List<Color>, val mirror: List<Color>, val iptv: List<Color>,
@@ -45,8 +53,13 @@ internal val DarkPalette = TvPalette(
     onAccent = Color(0xFF09030F),
     primaryContainer = Color(0xFF4A1232), onPrimaryContainer = Color(0xFFFFD8EA),
     backgroundTop = Color(0xFF2A1250), backgroundBottom = Color(0xFF160F2E),
-    surfaceTop = Color(0xFF2E1A4E), remoteTop = Color(0xFF3A255B), remoteBottom = Color(0xFF1C1234),
+    surfaceTop = Color(0xFF2E1A4E), remoteTop = Color(0xFF0B0C0E), remoteBottom = Color(0xFF16171A),
     pink = Color(0xFFFF4D9D), amber = Color(0xFFFFB000), green = Color(0xFF27D980),
+    remoteBodyTop = Color(0xFF16171A), remoteBodyBottom = Color(0xFF0B0C0E), remoteEdge = Color(0xFF292C32),
+    remoteKeyTop = Color(0xFF1E1F23), remoteKeyBottom = Color(0xFF121316), remoteInk = Color(0xFFE9EAEC), remoteMuted = Color(0xFF8C9098),
+    remoteHighlight = Color(0xFFFFFFFF), remoteShadow = Color(0xFF000000), remotePower = Color(0xFF9E1726),
+    remoteGlossTop = Color(0xFF08090B), remoteGlossBottom = Color(0xFF020304), remoteMetal = Color(0xFF484D55), remoteLed = Color(0xFF27D980),
+    remoteOnPower = Color(0xFFE9EAEC), remotePearl = emptyList(),
     brand = listOf(Color(0xFFA78BFF), Color(0xFFFF4D9D), Color(0xFFFFB000)),
     home = listOf(Color(0xFFFF4D9D), Color(0xFF5B9BFF)), remote = listOf(Color(0xFFFFB000), Color(0xFFFF4D9D)),
     mirror = listOf(Color(0xFFA78BFF), Color(0xFF5B9BFF)), iptv = listOf(Color(0xFFFF6B4A), Color(0xFFFF4D9D)),
@@ -60,8 +73,15 @@ internal val LightPalette = TvPalette(
     onAccent = Color(0xFFFFFFFF),
     primaryContainer = Color(0xFFFFD8EA), onPrimaryContainer = Color(0xFF530025),
     backgroundTop = Color(0xFFFFF7FB), backgroundBottom = Color(0xFFF3EEFF),
-    surfaceTop = Color(0xFFFFFFFF), remoteTop = Color(0xFFFFFFFF), remoteBottom = Color(0xFFFFE6F0),
+    surfaceTop = Color(0xFFFFFFFF), remoteTop = Color(0xFF0B0C0E), remoteBottom = Color(0xFF16171A),
     pink = Color(0xFFD0186A), amber = Color(0xFF9A5A00), green = Color(0xFF007A4D),
+    // Pearl remote: white ceramic body with a blush tint, silver-pearl ring, violet-grey cavities.
+    remoteBodyTop = Color(0xFFFFFFFF), remoteBodyBottom = Color(0xFFF5F0F7), remoteEdge = Color(0xFFDCD2E3),
+    remoteKeyTop = Color(0xFFFFFFFF), remoteKeyBottom = Color(0xFFEDE6F1), remoteInk = Color(0xFF2B2036), remoteMuted = Color(0xFF6A5F75),
+    remoteHighlight = Color(0xFFFFFFFF), remoteShadow = Color(0xFF8F80A0), remotePower = Color(0xFFD81B5C),
+    remoteGlossTop = Color(0xFFFFFBFE), remoteGlossBottom = Color(0xFFF0E8F4), remoteMetal = Color(0xFFB9AEC6), remoteLed = Color(0xFF1FC777),
+    remoteOnPower = Color(0xFFFFFFFF),
+    remotePearl = listOf(Color(0xFFFF8FC0), Color(0xFFB9A2FF), Color(0xFF8EC5FF), Color(0xFFFFD08A), Color(0xFFFF8FC0)),
     brand = listOf(Color(0xFF5A35C8), Color(0xFFC9005A), Color(0xFFC8371F)),
     home = listOf(Color(0xFFD0186A), Color(0xFF0057D8)), remote = listOf(Color(0xFF9A5A00), Color(0xFFC9005A)),
     mirror = listOf(Color(0xFF5A35C8), Color(0xFF0057D8)), iptv = listOf(Color(0xFFC8371F), Color(0xFFC9005A)),
@@ -91,6 +111,22 @@ object TvColors {
     val Amber get() = palette.amber
     /** Success and a genuinely connected TV. */
     val Green get() = palette.green
+    val RemoteBodyTop get() = palette.remoteBodyTop
+    val RemoteBodyBottom get() = palette.remoteBodyBottom
+    val RemoteEdge get() = palette.remoteEdge
+    val RemoteKeyTop get() = palette.remoteKeyTop
+    val RemoteKeyBottom get() = palette.remoteKeyBottom
+    val RemoteInk get() = palette.remoteInk
+    val RemoteMuted get() = palette.remoteMuted
+    val RemoteHighlight get() = palette.remoteHighlight
+    val RemoteShadow get() = palette.remoteShadow
+    val RemotePower get() = palette.remotePower
+    val RemoteGlossTop get() = palette.remoteGlossTop
+    val RemoteGlossBottom get() = palette.remoteGlossBottom
+    val RemoteMetal get() = palette.remoteMetal
+    val RemoteLed get() = palette.remoteLed
+    val RemoteOnPower get() = palette.remoteOnPower
+    val RemotePearl get() = palette.remotePearl
     /** The brand gradient; content on it uses [OnAccent]. */
     val Gradient get() = Brush.linearGradient(palette.brand)
     /** For gradient text on the page background: the readable accents, not the vivid stops. */
@@ -133,6 +169,8 @@ object TvDimens {
     val RadiusLg = 24.dp
     val RadiusXl = 30.dp
     val IconButton = 52.dp
+    /** Pages and the dock stay this wide at most and are centered on tablets and landscape phones. */
+    val ContentMaxWidth = 720.dp
 }
 private val TvTypography = Typography(
     displaySmall = TextStyle(fontFamily=FontFamily.SansSerif, fontWeight=FontWeight.Bold, fontSize=34.sp, lineHeight=39.sp, letterSpacing=0.sp),

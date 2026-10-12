@@ -57,6 +57,7 @@ import com.tuntech.monetization.iap.widget.ProductCancelMessage
 import com.tuntech.monetization.iap.widget.ProductEmptyWidget
 import com.tuntech.monetization.iap.widget.ProductsWidget
 import com.tuntech.monetization.iap.widget.ProductsWidget2
+import com.tuntech.supertvstreamcast.analytics.ClickEvent
 import com.tuntech.supertvstreamcast.constant.RemoteConfigKey
 import com.tuntech.supertvstreamcast.theme.TvColors
 import com.tuntech.supertvstreamcast.theme.TvDimens
@@ -113,6 +114,7 @@ fun PaywallScreen(
 
     PaywallScaffold(
         variant = PaywallVariant.One,
+        source = source,
         isLoading = isLoading,
         products = viewModel.products,
         selectedProduct = selectedProduct,
@@ -127,6 +129,8 @@ fun PaywallScreen(
 @Composable
 internal fun PaywallScaffold(
     variant: PaywallVariant = PaywallVariant.One,
+    /** Where the paywall was opened from; sent with every tap. */
+    source: String = "",
     isLoading: Boolean = false,
     products: List<IapProduct> = emptyList(),
     selectedProduct: IapProduct? = null,
@@ -135,6 +139,7 @@ internal fun PaywallScaffold(
     onRestore: () -> Unit = {},
     onRetry: () -> Unit = {},
 ) {
+    fun ec(name: String, vararg params: Pair<String, Any?>) = ClickEvent.log("paywall_$name", "source" to source, "variant" to variant, *params)
     IapProductTheme(style = PaywallProductStyle) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
@@ -146,7 +151,7 @@ internal fun PaywallScaffold(
                         containerColor = Color.Transparent,
                     ),
                     actions = {
-                        PremiumCloseButton(tintColor = TvColors.Text, onClick = onSkip)
+                        PremiumCloseButton(tintColor = TvColors.Text, onClick = { ec("close"); onSkip() })
                     },
                 )
             },
@@ -191,17 +196,19 @@ internal fun PaywallScaffold(
                             isLoading = isLoading,
                             products = products,
                             selectedProduct = selectedProduct,
-                            onSelectProduct = onSelectProduct,
-                            onRetry = onRetry,
+                            onSelectProduct = { product -> ec("plan", "product" to product.qonversionId); onSelectProduct(product) },
+                            onRetry = { ec("retry"); onRetry() },
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         PaywallFooter(
                             selectedProduct = selectedProduct,
                             onContinue = {
+                                ec("continue", "product" to selectedProduct?.qonversionId)
                                 selectedProduct?.let(onSelectProduct) ?: onSkip()
                             },
-                            onSkip = onSkip,
-                            onRestore = onRestore,
+                            onSkip = { ec("limited_version"); onSkip() },
+                            onRestore = { ec("restore"); onRestore() },
+                            onLink = { ec(it) },
                         )
                     }
                     PremiumTermsWidget(
@@ -294,6 +301,8 @@ private fun PaywallFooter(
     onContinue: () -> Unit = {},
     onSkip: () -> Unit = {},
     onRestore: () -> Unit = {},
+    /** Logs a tap on the terms or privacy link. */
+    onLink: (String) -> Unit = {},
 ) {
     val uriHandler = LocalUriHandler.current
     val termsUrl = rememberRemoteConfigString(RemoteConfigKey.TERM_OF_SERVICE_URL)
@@ -351,7 +360,7 @@ private fun PaywallFooter(
             FooterLink(
                 text = stringResource(MonetizationRes.string.terms_of_service),
                 modifier = Modifier.weight(1f),
-                onClick = onDoubleClickProtection { open(termsUrl) },
+                onClick = onDoubleClickProtection { onLink("terms"); open(termsUrl) },
             )
             VerticalDivider(
                 modifier = Modifier.fillMaxHeight(0.5f),
@@ -369,7 +378,7 @@ private fun PaywallFooter(
             FooterLink(
                 text = stringResource(MonetizationRes.string.privacy_policy),
                 modifier = Modifier.weight(1f),
-                onClick = onDoubleClickProtection { open(privacyUrl) },
+                onClick = onDoubleClickProtection { onLink("privacy"); open(privacyUrl) },
             )
         }
     }

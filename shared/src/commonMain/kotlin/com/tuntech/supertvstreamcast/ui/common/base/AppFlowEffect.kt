@@ -26,7 +26,8 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
  * Dashboard start-up flow:
  * 1. wait for the entitlement check and show the startup paywall when enabled;
  * 2. once the user is premium or has closed that paywall, run the in-app update check
- *    (`AppUpdateEffect` also triggers the in-app review on its own).
+ *    (`AppUpdateEffect` also triggers the in-app review on its own) and [onSettled], e.g. the
+ *    one-time notification prompt, so it never competes with the paywall.
  *
  * Ads are initialised by `SplashViewModel`, not here.
  */
@@ -34,6 +35,7 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 @Composable
 fun AppFlowEffect(
     isPaywallClosed: Boolean = false,
+    onSettled: suspend () -> Unit = {},
 ) {
     val appState = LocalAppState.current
 
@@ -73,6 +75,7 @@ fun AppFlowEffect(
     }
 
     // Step 2: App Update + App Review
+    LaunchedEffect(Unit) { onSettled() }
     val modalContext = LocalModalContext.current
 
     fun showAppUpdateDialog(

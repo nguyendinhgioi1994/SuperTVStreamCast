@@ -2,7 +2,10 @@ package com.tuntech.supertvstreamcast.domain
 
 enum class TvBrand(val title: String) {
     SAMSUNG("Samsung"), LG("LG"), SONY("Sony BRAVIA"), GOOGLE("Google / Android TV"),
-    TCL("TCL"), HISENSE("Hisense"), ROKU("Roku"), OTHER("TV")
+    TCL("TCL"), HISENSE("Hisense"), ROKU("Roku"), AMAZON("Amazon Fire TV"), VIZIO("Vizio"),
+    PHILIPS("Philips"), PANASONIC("Panasonic"), XIAOMI("Xiaomi"), TOSHIBA("Toshiba"), SHARP("Sharp"),
+    INSIGNIA("Insignia"), JVC("JVC"), ONN("onn."), WESTINGHOUSE("Westinghouse"), SKYWORTH("Skyworth / Coocaa"),
+    HAIER("Haier"), CASPER("Casper"), NVIDIA("Nvidia Shield"), OTHER("TV")
 }
 enum class Feature { HOME, REMOTE, MIRROR, IPTV, SETTINGS }
 enum class RemoteKey {
@@ -26,9 +29,18 @@ data class Channel(
     val kind: ContentKind = ContentKind.LIVE,
 )
 
-/** A TV that answered a vendor protocol probe on the local network. */
-/** [mac] is the network adapter address when the TV reported one; it is only used for Wake-on-LAN. */
-data class TvDevice(val brand: TvBrand, val host: String, val name: String, val model: String = "", val mac: String = "")
+/** Control protocol a TV speaks. TCL and Hisense ship several of them, so the brand alone does not decide it. */
+enum class TvPlatform(val title: String) {
+    SONY_BRAVIA("Sony BRAVIA"), SAMSUNG_TIZEN("Tizen"), LG_WEBOS("webOS"), GOOGLE_TV("Google TV / Android TV"),
+    ROKU("Roku TV"), VIDAA("VIDAA"), FIRE_TV("Fire TV"), VIZIO("Vizio SmartCast"), PANASONIC_VIERA("Panasonic Viera"),
+}
+
+/**
+ * A TV that answered a vendor protocol probe on the local network.
+ * [mac] is the network adapter address when the TV reported one; it is only used for Wake-on-LAN.
+ * [platform] is the protocol that answered; null for a TV only known by brand.
+ */
+data class TvDevice(val brand: TvBrand, val host: String, val name: String, val model: String = "", val mac: String = "", val platform: TvPlatform? = null)
 data class TvApp(val id: String, val title: String)
 /** Verified from the TV's own responses; buttons outside this set stay disabled. */
 data class RemoteCapabilities(
@@ -37,12 +49,33 @@ data class RemoteCapabilities(
     val apps: Boolean = false,
     val pointer: Boolean = false,
 )
-/** Brands with an implemented direct-control adapter. Others personalize guidance only. */
-val TvBrand.hasRemoteAdapter get() = this == TvBrand.SONY || this == TvBrand.SAMSUNG || this == TvBrand.LG || this == TvBrand.GOOGLE
-/** Sony uses an IP-control pre-shared key; Samsung/LG pair with an on-screen TV prompt. */
+/**
+ * Protocols tried, in order, for a TV of this brand whose platform is not known yet. TCL sells Google TV,
+ * Fire TV and Roku TV models; Hisense also sells VIDAA. Silent probes come first (Roku, VIDAA and Panasonic
+ * change nothing on screen); Fire TV and Vizio only show a PIN when the TV really is one; starting Google TV
+ * pairing makes any Android TV show a code, so it is always last.
+ */
+val TvBrand.platforms: List<TvPlatform> get() = when (this) {
+    TvBrand.SAMSUNG -> listOf(TvPlatform.SAMSUNG_TIZEN)
+    TvBrand.LG -> listOf(TvPlatform.LG_WEBOS)
+    TvBrand.SONY -> listOf(TvPlatform.SONY_BRAVIA)
+    TvBrand.GOOGLE, TvBrand.XIAOMI, TvBrand.SKYWORTH, TvBrand.HAIER, TvBrand.CASPER, TvBrand.NVIDIA -> listOf(TvPlatform.GOOGLE_TV)
+    TvBrand.ROKU -> listOf(TvPlatform.ROKU)
+    TvBrand.AMAZON -> listOf(TvPlatform.FIRE_TV)
+    TvBrand.VIZIO -> listOf(TvPlatform.VIZIO)
+    TvBrand.TCL -> listOf(TvPlatform.ROKU, TvPlatform.FIRE_TV, TvPlatform.GOOGLE_TV)
+    TvBrand.HISENSE -> listOf(TvPlatform.ROKU, TvPlatform.VIDAA, TvPlatform.GOOGLE_TV)
+    TvBrand.PHILIPS, TvBrand.SHARP, TvBrand.ONN -> listOf(TvPlatform.ROKU, TvPlatform.GOOGLE_TV)
+    TvBrand.PANASONIC -> listOf(TvPlatform.PANASONIC_VIERA, TvPlatform.FIRE_TV, TvPlatform.GOOGLE_TV)
+    TvBrand.TOSHIBA -> listOf(TvPlatform.VIDAA, TvPlatform.FIRE_TV, TvPlatform.GOOGLE_TV)
+    TvBrand.INSIGNIA, TvBrand.WESTINGHOUSE -> listOf(TvPlatform.ROKU, TvPlatform.FIRE_TV)
+    TvBrand.JVC -> listOf(TvPlatform.ROKU, TvPlatform.FIRE_TV, TvPlatform.GOOGLE_TV)
+    TvBrand.OTHER -> listOf(TvPlatform.ROKU, TvPlatform.VIDAA, TvPlatform.PANASONIC_VIERA, TvPlatform.FIRE_TV, TvPlatform.VIZIO, TvPlatform.GOOGLE_TV)
+}
+/** Sony uses an IP-control pre-shared key typed by the user. */
 val TvBrand.needsPsk get() = this == TvBrand.SONY
-/** Google TV shows a code on the TV that has to be typed into the phone. */
-val TvBrand.pairsWithCode get() = this == TvBrand.GOOGLE
+/** Samsung/LG ask the viewer to allow the phone on the TV screen while connecting. */
+val TvBrand.promptsOnTv get() = this == TvBrand.SAMSUNG || this == TvBrand.LG
 
 fun isLocalIpv4(value: String): Boolean {
     val octets = ipv4Octets(value) ?: return false

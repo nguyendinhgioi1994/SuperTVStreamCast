@@ -10,22 +10,27 @@
     "paywallId": "1",
     "defaultProductId": "monthly",
     "productIds": [
-      "weekly",
       "monthly",
-      "yearly"
+      "yearly",
+      "lifetime"
     ]
   },
   "IAP_DISCOUNT_SETTINGS": {
     "isEnabled": false
   },
   "ADS_APP_OPEN_SETTINGS": {
-    "isEnabled": false,
+    "isEnabled": true,
     "maximumPreloadAd": 1,
     "maximumLoadFailAd": 3,
+    "nextDisplayAdTime": 30,
+    "backgroundIdleTime": 10,
     "*": {
-      "isEnabled": true
+      "isEnabled": false
     },
     "APP_FOREGROUND": {
+      "isEnabled": true
+    },
+    "SPLASH": {
       "isEnabled": true
     }
   },
@@ -33,7 +38,7 @@
     "isEnabled": true,
     "maximumPreloadAd": 1,
     "maximumLoadFailAd": 3,
-    "nextDisplayAdTime": 0,
+    "nextDisplayAdTime": 45,
     "bypassRepeatingPolicyEnabled": false,
     "*": {
       "isEnabled": false
@@ -42,18 +47,36 @@
       "isEnabled": true
     },
     "PREMIUM": {
-      "isEnabled": false
+      "isEnabled": true
+    },
+    "FEATURE_OPEN": {
+      "isEnabled": true
+    },
+    "IPTV_SOURCE_OPEN": {
+      "isEnabled": true
+    },
+    "IPTV_PLAYER_CLOSE": {
+      "isEnabled": true
     },
     "APP_EXIT": {
       "isEnabled": false
     }
   },
   "ADS_REWARDED_SETTINGS": {
-    "isEnabled": false,
+    "isEnabled": true,
     "maximumPreloadAd": 1,
     "maximumLoadFailAd": 3,
     "*": {
       "isEnabled": false
+    },
+    "UNLOCK_REMOTE": {
+      "isEnabled": true
+    },
+    "UNLOCK_IPTV_TIME": {
+      "isEnabled": true
+    },
+    "UNLOCK_IPTV_SOURCE": {
+      "isEnabled": true
     }
   },
   "ADS_BANNER_SETTINGS": {
@@ -77,19 +100,41 @@
     "INTRODUCTION": {
       "isEnabled": true,
       "size": "small_native"
+    },
+    "LANGUAGE": {
+      "isEnabled": true,
+      "size": "small_native"
+    },
+    "ONBOARDING_FULL_1": {
+      "isEnabled": true,
+      "size": "large_native",
+      "position": 2
+    },
+    "ONBOARDING_FULL_2": {
+      "isEnabled": false,
+      "size": "large_native",
+      "position": 3
     }
-  },
-  "NOTIFICATION_SETTINGS": {
-    "isEnabled": false
   },
   "IN_APP_UPDATE_SETTINGS": {
     "isEnabled": true,
     "type": "flexible"
   },
   "IPTV_SETTINGS": {
-    "maximumSources": 0,
-    "maximumWatchSeconds": 0
+    "maximumSources": 1,
+    "maximumWatchSeconds": 1800
   },
-  "TERM_OF_SERVICE_URL": "",
-  "PRIVACY_POLICY_URL": ""
+  "PREMIUM_SETTINGS": {
+    "lockedFeatures": [
+      "REMOTE_KEYBOARD",
+      "REMOTE_TOUCHPAD",
+      "REMOTE_APPS"
+    ],
+    "rewardUnlockMinutes": 30,
+    "rewardWatchSeconds": 1800,
+    "rewardSources": 1
+  },
+  "TERM_OF_SERVICE_URL": "https://mmtstudio.site/terms",
+  "PRIVACY_POLICY_URL": "https://mmtstudio.site/privacy",
+  "SUPPORT_EMAIL": "contact@mmtstudio.site"
 }

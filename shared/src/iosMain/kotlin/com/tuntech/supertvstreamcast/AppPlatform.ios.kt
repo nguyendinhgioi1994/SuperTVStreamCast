@@ -49,10 +49,11 @@ fun createAppPreferences(): AppPreferences {
 @Composable actual fun rememberScreenSharingAction(): (() -> Boolean)? = null
 /** AVPlayer (HLS and MP4). The playback audio session keeps sound on when the ring switch is silent. */
 @Composable actual fun StreamPlayer(url: String,userAgent: String,referer: String,modifier: Modifier,startMs: Long,controls: Boolean,fill: Boolean,
-    onProgress: (Long,Long)->Unit,onEnded: ()->Unit,onError: () -> Unit) {
+    onProgress: (Long,Long)->Unit,onEnded: ()->Unit,onError: () -> Unit,onStarted: () -> Unit) {
     val report by rememberUpdatedState(onError)
     val progress by rememberUpdatedState(onProgress)
     val ended by rememberUpdatedState(onEnded)
+    val started by rememberUpdatedState(onStarted)
     val player=remember(url,userAgent,referer) {NSURL.URLWithString(url)?.let {target ->
         val headers=buildMap<Any?,Any?> {
             if(userAgent.isNotEmpty()) put("User-Agent",userAgent)
@@ -83,8 +84,11 @@ fun createAppPreferences(): AppPreferences {
     LaunchedEffect(player) {
         if(player==null){report();return@LaunchedEffect}
         var ticks=0
+        var playing=false
         while(true) {
             if(player.currentItem?.status==AVPlayerItemStatusFailed||player.status==AVPlayerStatusFailed){report();break}
+            // Playing, not waiting for data: the first frames have arrived.
+            if(!playing&&player.timeControlStatus==AVPlayerTimeControlStatusPlaying){playing=true;started()}
             delay(500)
             // Every five seconds, and at once when the video stopped at its end.
             if(++ticks%10==0||player.rate==0f) {if(position()&&player.rate==0f){ended();break}}

@@ -1,5 +1,6 @@
 package com.tuntech.supertvstreamcast.ui.onboarding
 
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -29,6 +30,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,6 +52,8 @@ import com.tuntech.monetization.ad.widget.rememberAdState
 import com.tuntech.monetization.iap.IapManager
 import com.tuntech.monetization.util.MonetizationUtil
 import com.tuntech.supertvstreamcast.constant.AdName
+import com.tuntech.supertvstreamcast.analytics.ClickEvent
+import com.tuntech.supertvstreamcast.analytics.tracked
 import com.tuntech.supertvstreamcast.constant.AnalyticsEvent
 import com.tuntech.supertvstreamcast.domain.Feature
 import com.tuntech.supertvstreamcast.domain.TvBrand
@@ -80,6 +87,8 @@ import shared.resources.get_started
 import shared.resources.goal_body
 import shared.resources.goal_title
 import shared.resources.onboarding_step
+import shared.resources.promo_noads_body
+import shared.resources.promo_noads_title
 import shared.resources.welcome_body
 import shared.resources.welcome_title
 
@@ -103,9 +112,20 @@ fun OnboardingScreen(
     val context = LocalPlatformContext.current
     val modalContext = LocalModalContext.current
     val adState = rememberAdState()
+    val isAdReady by adManager.isReady.collectAsStateWithLifecycle()
+    var pages by remember { mutableStateOf(onboardingPages(PAGE_COUNT, emptyList())) }
     val pagerState = rememberPagerState(
-        pageCount = { PAGE_COUNT },
+        pageCount = { pages.size },
     )
+    // Full-page natives join the pager once ads are ready, while the user is still on the first
+    // page; every ad sits after at least one content page, so the page in view never moves.
+    LaunchedEffect(isAdReady) {
+        if (!isAdReady || pagerState.currentPage != 0) return@LaunchedEffect
+        val ads = listOf(AdName.ONBOARDING_FULL_1, AdName.ONBOARDING_FULL_2)
+            .filter { adManager.checkEnabled(AdManager.NATIVE_AD, it) }
+            .map { it to (adManager.managers[AdManager.NATIVE_AD]?.getAdSetting(it)?.position ?: PAGE_COUNT) }
+        pages = onboardingPages(PAGE_COUNT, ads)
+    }
 
     fun close() {
         adManager.showInterstitialAd(
@@ -160,20 +180,31 @@ fun OnboardingScreen(
     )
 
     LaunchedEffect(pagerState.currentPage) {
-        adState.reload()
+        if (pages.getOrNull(pagerState.currentPage) is OnboardingPage.Content) adState.reload()
     }
 
     OnboardingScaffold(
         state = state,
+        pages = pages,
         pagerState = pagerState,
-        onNext = ::handleContinue,
-        onBack = ::handleBack,
-        onBrand = viewModel::brand,
-        onGoal = viewModel::goal,
+        onNext = {
+            val last = pagerState.currentPage == pagerState.pageCount - 1
+            ClickEvent.log(if (last) "onboarding_finish" else "onboarding_next", "page" to pagerState.currentPage + 1)
+            handleContinue()
+        },
+        onBack = tracked("onboarding_back", "page" to pagerState.currentPage + 1, action = ::handleBack),
+        onBrand = { brand -> ClickEvent.log("onboarding_brand", "selected" to brand); viewModel.brand(brand) },
+        onGoal = { goal -> ClickEvent.log("onboarding_goal", "selected" to goal); viewModel.goal(goal) },
         ad = {
             NativeAd(
                 name = AdName.INTRODUCTION,
                 state = adState,
+            )
+        },
+        fullAd = { name ->
+            NativeAd(
+                name = name,
+                modifier = Modifier.fillMaxWidth(),
             )
         },
     )
@@ -182,18 +213,22 @@ fun OnboardingScreen(
 @Composable
 internal fun OnboardingScaffold(
     state: OnboardingUiState,
+    pages: List<OnboardingPage>,
     pagerState: PagerState,
     onNext: () -> Unit = {},
     onBack: () -> Unit = {},
     onBrand: (TvBrand) -> Unit = {},
     onGoal: (Feature) -> Unit = {},
     ad: @Composable () -> Unit = {},
+    fullAd: @Composable (String) -> Unit = {},
 ) {
     val page = pagerState.currentPage
+    val step = pages.stepAt(page)
+    val onAdPage = pages.getOrNull(page) is OnboardingPage.Ad
     Box(Modifier.fillMaxSize()) {
         CommonAppBackground()
         Column(
-            Modifier.fillMaxSize().safeDrawingPadding().padding(TvDimens.Space),
+            Modifier.align(Alignment.TopCenter).widthIn(max = TvDimens.ContentMaxWidth).fillMaxSize().safeDrawingPadding().padding(TvDimens.Space),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             Row(
@@ -207,14 +242,14 @@ internal fun OnboardingScaffold(
                     color = TvColors.Cyan,
                 )
                 Text(
-                    stringResource(Res.string.onboarding_step, page + 1),
+                    stringResource(Res.string.onboarding_step, step + 1),
                     style = MaterialTheme.typography.labelSmall,
                     color = TvColors.Muted,
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                repeat(PAGE_COUNT) { step ->
-                    val fill by animateFloatAsState(if (step <= page) 1f else 0f, tween(TvMotion.Card, easing = TvMotion.Standard), label = "onboardingStep")
+                repeat(PAGE_COUNT) { index ->
+                    val fill by animateFloatAsState(if (index <= step) 1f else 0f, tween(TvMotion.Card, easing = TvMotion.Standard), label = "onboardingStep")
                     Box(Modifier.weight(1f).height(4.dp).clip(CircleShape).background(TvColors.Outline)) {
                         Box(Modifier.fillMaxWidth(fill).height(4.dp).clip(CircleShape).background(TvColors.Gradient))
                     }
@@ -230,19 +265,22 @@ internal fun OnboardingScaffold(
                     Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(22.dp),
                 ) {
-                    when (index) {
-                        0 -> IntroductionPage()
-                        1 -> {
-                            Heading(stringResource(Res.string.brand_title), stringResource(Res.string.brand_body))
-                            BrandGrid(state.brand, onBrand)
-                        }
+                    when (val content = pages[index]) {
+                        is OnboardingPage.Ad -> AdPage { fullAd(content.name) }
+                        is OnboardingPage.Content -> when (content.step) {
+                            0 -> IntroductionPage()
+                            1 -> {
+                                Heading(stringResource(Res.string.brand_title), stringResource(Res.string.brand_body))
+                                BrandGrid(state.brand, onBrand)
+                            }
 
-                        else -> GoalPage(state.goal, onGoal)
+                            else -> GoalPage(state.goal, onGoal)
+                        }
                     }
                 }
             }
             PrimaryCta(
-                stringResource(if (page == PAGE_COUNT - 1) Res.string.get_started else Res.string.continue_label),
+                stringResource(if (page == pages.lastIndex) Res.string.get_started else Res.string.continue_label),
                 onClick = onNext,
             )
             if (page > 0) {
@@ -250,8 +288,20 @@ internal fun OnboardingScaffold(
                     Text(stringResource(Res.string.back), color = TvColors.Muted)
                 }
             }
-            ad()
+            // The small native stays off the full-page ad pages.
+            if (!onAdPage) ad()
         }
+    }
+}
+
+/** A full-page native; while no ad fills it (none loaded, or ads off) the premium pitch shows instead. */
+@Composable
+private fun AdPage(ad: @Composable () -> Unit) {
+    var adHeight by remember { mutableStateOf(0) }
+    Box(Modifier.fillMaxWidth().onSizeChanged { adHeight = it.height }) { ad() }
+    if (adHeight == 0) {
+        Artwork(Modifier.height(240.dp), TvArt.premium)
+        Heading(stringResource(Res.string.promo_noads_title), stringResource(Res.string.promo_noads_body))
     }
 }
 
@@ -305,21 +355,30 @@ private fun GoalPage(selected: Feature, onGoal: (Feature) -> Unit) {
     }
 }
 
+private val PreviewPages = onboardingPages(PAGE_COUNT, emptyList())
+
+@Preview(widthDp = 360, heightDp = 780)
+@Composable
+private fun OnboardingAdFallbackPreview() {
+    val pages = onboardingPages(PAGE_COUNT, listOf("preview" to 2))
+    TvTheme { OnboardingScaffold(OnboardingUiState(), pages, rememberPagerState(initialPage = 2) { pages.size }) }
+}
+
 @Preview(widthDp = 360, heightDp = 780)
 @Preview(widthDp = 320, heightDp = 640)
 @Composable
 private fun OnboardingIntroPreview() {
-    TvTheme { OnboardingScaffold(OnboardingUiState(), rememberPagerState { PAGE_COUNT }) }
+    TvTheme { OnboardingScaffold(OnboardingUiState(), PreviewPages, rememberPagerState { PAGE_COUNT }) }
 }
 
 @Preview(widthDp = 360, heightDp = 780)
 @Composable
 private fun OnboardingBrandPreview() {
-    TvTheme { OnboardingScaffold(OnboardingUiState(), rememberPagerState(initialPage = 1) { PAGE_COUNT }) }
+    TvTheme { OnboardingScaffold(OnboardingUiState(), PreviewPages, rememberPagerState(initialPage = 1) { PAGE_COUNT }) }
 }
 
 @Preview(widthDp = 360, heightDp = 780)
 @Composable
 private fun OnboardingGoalPreview() {
-    TvTheme { OnboardingScaffold(OnboardingUiState(), rememberPagerState(initialPage = 2) { PAGE_COUNT }) }
+    TvTheme { OnboardingScaffold(OnboardingUiState(), PreviewPages, rememberPagerState(initialPage = 2) { PAGE_COUNT }) }
 }

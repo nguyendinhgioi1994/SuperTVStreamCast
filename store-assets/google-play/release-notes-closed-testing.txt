@@ -1,0 +1,72 @@
+<en-US>
+Welcome to the Super TV Cast closed test!
+• Remote for Samsung, LG, Sony and Google TV over Wi-Fi
+• Add IPTV from an M3U link, file, Xtream or a single stream
+• TV guide with reminders, hidden channels and picture-in-picture
+• Chromecast and DLNA casting shortcuts
+Please try the remote and your own playlists and send us feedback. Thank you!
+</en-US>
+<vi>
+Chào mừng bạn đến với bản thử nghiệm kín của Super TV Cast!
+• Điều khiển TV Samsung, LG, Sony và Google TV qua Wi-Fi
+• Thêm IPTV từ liên kết M3U, tệp, Xtream hoặc một luồng đơn
+• Lịch phát sóng có nhắc lịch, ẩn kênh và hình trong hình
+• Lối tắt phát lên Chromecast và DLNA
+Hãy thử điều khiển và danh sách phát của bạn rồi gửi phản hồi cho chúng tôi. Cảm ơn bạn!
+</vi>
+<es-419>
+¡Bienvenido a la prueba cerrada de Super TV Cast!
+• Control remoto para TV Samsung, LG, Sony y Google TV por Wi-Fi
+• Agrega IPTV desde un enlace M3U, archivo, Xtream o una sola transmisión
+• Guía de TV con recordatorios, canales ocultos e imagen en imagen
+• Accesos directos para transmitir con Chromecast y DLNA
+Prueba el control remoto y tus propias listas y envíanos tus comentarios. ¡Gracias!
+</es-419>
+<pt-BR>
+Bem-vindo ao teste fechado do Super TV Cast!
+• Controle remoto para TVs Samsung, LG, Sony e Google TV via Wi-Fi
+• Adicione IPTV por link M3U, arquivo, Xtream ou um único stream
+• Guia de TV com lembretes, canais ocultos e picture-in-picture
+• Atalhos para transmitir com Chromecast e DLNA
+Teste o controle remoto e suas próprias listas e envie seu feedback. Obrigado!
+</pt-BR>
+<fr-FR>
+Bienvenue dans le test fermé de Super TV Cast !
+• Télécommande pour TV Samsung, LG, Sony et Google TV via Wi-Fi
+• Ajoutez de l'IPTV via un lien M3U, un fichier, Xtream ou un flux unique
+• Guide TV avec rappels, chaînes masquées et image dans l'image
+• Raccourcis de diffusion Chromecast et DLNA
+Essayez la télécommande et vos propres listes, puis envoyez-nous vos retours. Merci !
+</fr-FR>
+<de-DE>
+Willkommen zum geschlossenen Test von Super TV Cast!
+• Fernbedienung für Samsung-, LG-, Sony- und Google-TV über WLAN
+• IPTV per M3U-Link, Datei, Xtream oder einzelnem Stream hinzufügen
+• TV-Programm mit Erinnerungen, ausgeblendeten Sendern und Bild-in-Bild
+• Verknüpfungen für Chromecast und DLNA
+Bitte teste die Fernbedienung und deine eigenen Playlists und gib uns Feedback. Danke!
+</de-DE>
+<ja-JP>
+Super TV Cast のクローズドテストへようこそ！
+• Wi-Fi で Samsung、LG、Sony、Google TV をリモコン操作
+• M3U リンク、ファイル、Xtream、単一ストリームから IPTV を追加
+• リマインダー、チャンネル非表示、ピクチャーインピクチャー対応の番組表
+• Chromecast と DLNA へのキャストのショートカット
+リモコンとお持ちのプレイリストをお試しの上、フィードバックをお寄せください。ありがとうございます！
+</ja-JP>
+<ko-KR>
+Super TV Cast 비공개 테스트에 오신 것을 환영합니다!
+• Wi-Fi로 Samsung, LG, Sony, Google TV 리모컨 사용
+• M3U 링크, 파일, Xtream 또는 단일 스트림으로 IPTV 추가
+• 알림, 채널 숨기기, 화면 속 화면을 지원하는 TV 가이드
+• Chromecast 및 DLNA 캐스트 바로가기
+리모컨과 직접 만든 재생목록을 사용해 보시고 의견을 보내 주세요. 감사합니다!
+</ko-KR>
+<zh-CN>
+欢迎参加 Super TV Cast 封闭测试！
+• 通过 Wi-Fi 遥控 Samsung、LG、Sony 和 Google TV
+• 通过 M3U 链接、文件、Xtream 或单个直播流添加 IPTV
+• 带提醒、隐藏频道和画中画的电视节目指南
+• Chromecast 和 DLNA 投屏快捷方式
+请试用遥控器和您自己的播放列表，并向我们反馈。谢谢！
+</zh-CN>

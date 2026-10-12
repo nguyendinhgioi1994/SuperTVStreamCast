@@ -13,6 +13,7 @@ import com.tuntech.supertvstreamcast.ui.AppState
 import com.tuntech.supertvstreamcast.ui.AppStateProvider
 import com.tuntech.supertvstreamcast.ui.Screen
 import com.tuntech.supertvstreamcast.ui.dashboard.DashboardScreen
+import com.tuntech.supertvstreamcast.ui.language.LanguageScreen
 import com.tuntech.supertvstreamcast.ui.onboarding.OnboardingScreen
 import com.tuntech.supertvstreamcast.ui.paywall.Paywall2Screen
 import com.tuntech.supertvstreamcast.ui.paywall.PaywallScreen
@@ -49,7 +50,7 @@ fun MainNavHost(
                         isInitial = key.isInitial,
                         navigateBack = appState::navigateBack,
                         navigateToDashboard = appState::replaceToDashboard,
-                        navigateToOnBoarding = appState::replaceToOnboarding,
+                        navigateToLanguage = appState::replaceToLanguage,
                     )
                 }
 
@@ -79,6 +80,14 @@ fun MainNavHost(
                     )
                 }
 
+                entry<Screen.Language>(metadata = fadeMetadata()) { key ->
+                    LanguageScreen(
+                        isInitial = key.isInitial,
+                        navigateNext = if (key.isInitial) appState::replaceToOnboarding else appState::navigateBack,
+                        navigateBack = appState::navigateBack,
+                    )
+                }
+
                 entry<Screen.Onboarding>(metadata = fadeMetadata()) {
                     OnboardingScreen(
                         navigateToPaywall = {
@@ -98,6 +107,7 @@ fun MainNavHost(
                     DashboardScreen(
                         isPaywallClosed = key.isPaywallClosed,
                         navigateToPaywall = { source -> appState.navigateToPaywall(false, source) },
+                        navigateToLanguage = appState::navigateToLanguage,
                         navigateBack = appState::navigateBack,
                     )
                 }

@@ -64,7 +64,8 @@ import com.tuntech.supertvstreamcast.theme.TvColors
 }
 
 enum class Glyph { UP, DOWN, LEFT, RIGHT, POWER, BACK, PLUS, MINUS, MUTE, CHECK, ADD, SEARCH, PLAY, HEART, LOCK, WIFI, CLOSE, MENU,
-    PAUSE, STOP, REWIND, FAST_FORWARD, INPUT, KEYPAD, KEYBOARD, TOUCH, LINK, FILE, GUIDE, HELP, SUN, MOON, AUTO, CROWN }
+    PAUSE, STOP, REWIND, FAST_FORWARD, INPUT, KEYPAD, KEYBOARD, TOUCH, LINK, FILE, GUIDE, HELP, SUN, MOON, AUTO, CROWN, BELL,
+    GLOBE, STAR, SHARE, MAIL, REFRESH, TRASH, INFO }
 @Composable fun GlyphIcon(glyph: Glyph, modifier: Modifier=Modifier, color: Color=TvColors.Text) {
     Canvas(modifier.size(24.dp)) {
         val u=size.width/24f
@@ -109,6 +110,15 @@ enum class Glyph { UP, DOWN, LEFT, RIGHT, POWER, BACK, PLUS, MINUS, MUTE, CHECK,
                 drawPath(moon,color,style=Stroke(1.8f*u,join=androidx.compose.ui.graphics.StrokeJoin.Round))}
             Glyph.AUTO -> {drawCircle(color,8.5f*u,p(12f,12f),style=Stroke(1.8f*u));drawArc(color,90f,180f,true,p(6.5f,6.5f),Size(11*u,11*u))}
             Glyph.CROWN -> {path(listOf(p(4f,17f),p(4f,8f),p(8.5f,12f),p(12f,6f),p(15.5f,12f),p(20f,8f),p(20f,17f),p(4f,17f)));line(5f,20.5f,19f,20.5f)}
+            Glyph.BELL -> {drawArc(color,180f,180f,false,p(6f,4f),Size(12*u,12*u),style=Stroke(1.8f*u));line(6f,10f,6f,15f);line(18f,10f,18f,15f)
+                line(4f,17f,20f,17f);line(6f,15f,4f,17f);line(18f,15f,20f,17f);line(10.5f,20.5f,13.5f,20.5f);line(12f,2.5f,12f,4f)}
+            Glyph.GLOBE -> {drawCircle(color,9*u,p(12f,12f),style=Stroke(1.8f*u));drawOval(color,p(8f,3f),Size(8*u,18*u),style=Stroke(1.8f*u));line(3.5f,9f,20.5f,9f);line(3.5f,15f,20.5f,15f)}
+            Glyph.STAR -> path((0..10).map{i->val r=if(i%2==0) 9f else 4f;val a=-kotlin.math.PI/2+i*kotlin.math.PI/5;p(12f+r*kotlin.math.cos(a).toFloat(),12.5f+r*kotlin.math.sin(a).toFloat())})
+            Glyph.SHARE -> {path(listOf(p(8f,9f),p(4f,9f),p(4f,21f),p(20f,21f),p(20f,9f),p(16f,9f)));line(12f,3f,12f,15f);path(listOf(p(8f,7f),p(12f,3f),p(16f,7f)))}
+            Glyph.MAIL -> {drawRoundRect(color,p(3f,5f),Size(18*u,14*u),CornerRadius(2*u),style=Stroke(1.8f*u));path(listOf(p(3.5f,6.5f),p(12f,13f),p(20.5f,6.5f)))}
+            Glyph.REFRESH -> {drawArc(color,-60f,300f,false,p(4f,4f),Size(16*u,16*u),style=Stroke(1.8f*u,cap=androidx.compose.ui.graphics.StrokeCap.Round));path(listOf(p(20f,3.5f),p(20f,8f),p(15.5f,8f)))}
+            Glyph.TRASH -> {line(4f,6.5f,20f,6.5f);path(listOf(p(9f,6.5f),p(9f,3.5f),p(15f,3.5f),p(15f,6.5f)));path(listOf(p(6f,6.5f),p(7f,21f),p(17f,21f),p(18f,6.5f)));line(10f,10.5f,10f,17f);line(14f,10.5f,14f,17f)}
+            Glyph.INFO -> {drawCircle(color,9*u,p(12f,12f),style=Stroke(1.8f*u));line(12f,11f,12f,17f);drawCircle(color,1.1f*u,p(12f,7.5f))}
             Glyph.HEART -> {val path=androidx.compose.ui.graphics.Path().apply{moveTo(12*u,20*u);cubicTo(0f,12*u,3*u,1*u,12*u,7*u);cubicTo(21*u,1*u,24*u,12*u,12*u,20*u);close()};drawPath(path,color,style=Stroke(1.8f*u))}
         }
     }

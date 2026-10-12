@@ -18,15 +18,12 @@ import com.tuntech.common.util.LocalPlatformContext
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.remember
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import com.tuntech.supertvstreamcast.theme.LocalReducedMotion
 import com.tuntech.supertvstreamcast.theme.TvMotion
-import com.tuntech.supertvstreamcast.ui.BrandMark
-import com.tuntech.supertvstreamcast.ui.rememberPulse
+import com.tuntech.supertvstreamcast.ui.app_loading.AppIconLoader
 import shared.resources.tagline
 import com.tuntech.supertvstreamcast.theme.TvColors
 import com.tuntech.supertvstreamcast.theme.TvTheme
@@ -34,6 +31,8 @@ import com.tuntech.supertvstreamcast.widgets.AppBackHandler
 import com.tuntech.supertvstreamcast.widgets.CommonAppBackground
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.compose.koinInject
+import com.tuntech.monetization.ad.AdManager
 import shared.resources.Res
 import shared.resources.app_name
 
@@ -46,8 +45,9 @@ fun SplashScreen(
     isInitial: Boolean = true,
     navigateBack: () -> Unit,
     navigateToDashboard: () -> Unit,
-    navigateToOnBoarding: () -> Unit,
+    navigateToLanguage: () -> Unit,
     viewModel: SplashViewModel = koinViewModel(),
+    adManager: AdManager = koinInject(),
 ) {
     val context = LocalPlatformContext.current
     val isFinished by viewModel.isFinished.collectAsStateWithLifecycle()
@@ -71,10 +71,11 @@ fun SplashScreen(
         }
 
         if (!viewModel.isOnboardingSelected) {
-            navigateToOnBoarding()
+            navigateToLanguage()
             return@LaunchedEffect
         }
 
+        if (isInitial) adManager.showSplashAd(context)
         close()
     }
 
@@ -88,12 +89,10 @@ private fun SplashContent() {
         contentAlignment = Alignment.Center,
     ) {
         CommonAppBackground()
-        // The mark settles in once and its halo breathes; nothing here delays leaving the splash.
+        // The icon settles in once while its ring spins; nothing here delays leaving the splash.
         val reduced = LocalReducedMotion.current
         val enter = remember { Animatable(if (reduced) 1f else 0f) }
         LaunchedEffect(Unit) { enter.animateTo(1f, tween(TvMotion.Splash, easing = TvMotion.Emphasized)) }
-        val halo = rememberPulse(1800)
-        val glow = TvColors.Cyan
         Column(
             modifier = Modifier.padding(horizontal = 32.dp).graphicsLayer {
                 alpha = enter.value
@@ -103,12 +102,7 @@ private fun SplashContent() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            BrandMark(
-                Modifier.size(104.dp).drawBehind {
-                    val radius = size.minDimension * (0.95f + 0.4f * halo.value)
-                    drawCircle(TvColors.glow(glow, center, radius, 1.5f), radius)
-                }
-            )
+            AppIconLoader()
             Text(
                 text = stringResource(Res.string.app_name),
                 style = MaterialTheme.typography.headlineMedium,

@@ -90,8 +90,32 @@ object GoogleTvProtocol {
         RemoteKey.REWIND -> 89; RemoteKey.FAST_FORWARD -> 90
         else -> 7 + key.name.removePrefix("NUM_").toInt()
     }
-    /** Key injection only: text entry and app listing need protocol parts this app does not implement. */
-    val capabilities = RemoteCapabilities(RemoteKey.entries.toSet())
+    /** Opens an app on the TV by deep link or `market://launch?id=<package>`; the TV falls back to its store when it is missing. */
+    fun appLink(link: String) = proto { message(90) { string(1, link) } }
+    private const val FEATURE_APP_LINK = 512
+    /**
+     * Keys always; app shortcuts only when the TV accepted the app-link feature. Text entry needs the
+     * IME exchange, which this app does not implement.
+     */
+    fun capabilities(features: Int) = RemoteCapabilities(RemoteKey.entries.toSet(), apps = features and FEATURE_APP_LINK != 0)
+    /**
+     * The protocol cannot list installed apps, so the remote offers launch shortcuts for widely
+     * installed Google TV apps. Ids are the links sent with [appLink].
+     */
+    val shortcuts = listOf(
+        TvApp("https://www.youtube.com", "YouTube"),
+        TvApp("https://www.netflix.com/title", "Netflix"),
+        TvApp("https://app.primevideo.com", "Prime Video"),
+        TvApp("https://www.disneyplus.com", "Disney+"),
+        TvApp("market://launch?id=com.google.android.youtube.tvmusic", "YouTube Music"),
+        TvApp("market://launch?id=com.spotify.tv.android", "Spotify"),
+        TvApp("market://launch?id=com.apple.atve.androidtv.appletv", "Apple TV"),
+        TvApp("market://launch?id=com.wbd.stream", "Max"),
+        TvApp("market://launch?id=tv.twitch.android.app", "Twitch"),
+        TvApp("market://launch?id=com.plexapp.android", "Plex"),
+        TvApp("market://launch?id=org.xbmc.kodi", "Kodi"),
+        TvApp("market://launch?id=com.android.vending", "Google Play"),
+    )
 }
 
 /** `aa:bb:cc:dd:ee:ff` or `aa-bb-…`; null for anything else, including the all-zero address. */

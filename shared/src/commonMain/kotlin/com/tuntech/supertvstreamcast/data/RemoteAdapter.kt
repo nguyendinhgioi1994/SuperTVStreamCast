@@ -43,18 +43,39 @@ class KtorTextSocket(private val session: DefaultClientWebSocketSession) : TextS
 /** One client per TV host for the session, so pinned certificates do not outlive a disconnect. */
 class LocalSockets(private val clientFor: (String) -> HttpClient) {
     private val clients = mutableMapOf<String, HttpClient>()
-    val open: SocketOpener = { host, url -> KtorTextSocket(clients.getOrPut(host) { clientFor(host) }.webSocketSession(url)) }
+    val http: (String) -> HttpClient = { host -> clients.getOrPut(host) { clientFor(host) } }
+    val open: SocketOpener = { host, url -> KtorTextSocket(http(host).webSocketSession(url)) }
     fun close() { clients.values.forEach { it.close() }; clients.clear() }
 }
 
 /** Plain (non-TLS) WebSocket opener for discovery probes. */
 fun plainSockets(client: HttpClient): SocketOpener = { _, url -> KtorTextSocket(client.webSocketSession(url)) }
 
-/** [tls] is only needed by brands that authenticate with a client certificate (Google TV). */
-fun createAdapter(brand: TvBrand, http: HttpClient, sockets: SocketOpener, secrets: SecretStore = MemorySecretStore(), tls: TlsOpener? = null): RemoteAdapter? = when (brand) {
-    TvBrand.SONY -> SonyBraviaAdapter(http)
-    TvBrand.SAMSUNG -> SamsungTizenAdapter(http, secrets, sockets)
-    TvBrand.LG -> LgWebOsAdapter(secrets, sockets)
-    TvBrand.GOOGLE -> tls?.let { GoogleTvAdapter(it, secrets) }
-    else -> null
+/** The TV answered but refuses remote control from phones (Roku: "Control by mobile apps" is off). */
+class RemoteControlDisabled : Exception()
+/** The TV identified itself but needs a pairing method this app does not implement (Panasonic encrypted models). */
+class UnsupportedTvModel : Exception()
+
+/**
+ * Adapter for a known [platform], or for every platform the [brand] ships (detected on connect).
+ * [tls] is only needed by platforms that speak raw TLS (Google TV, VIDAA); [localHttp] gives the
+ * certificate-pinned client for TVs serving HTTPS with a self-signed certificate (Vizio, Fire TV).
+ */
+fun createAdapter(
+    brand: TvBrand, http: HttpClient, sockets: SocketOpener, secrets: SecretStore = MemorySecretStore(),
+    tls: TlsOpener? = null, platform: TvPlatform? = null, localHttp: (String) -> HttpClient = { http },
+): RemoteAdapter? {
+    val platforms = platform?.let { listOf(it) } ?: brand.platforms
+    fun create(platform: TvPlatform): RemoteAdapter? = when (platform) {
+        TvPlatform.SONY_BRAVIA -> SonyBraviaAdapter(http)
+        TvPlatform.SAMSUNG_TIZEN -> SamsungTizenAdapter(http, secrets, sockets)
+        TvPlatform.LG_WEBOS -> LgWebOsAdapter(secrets, sockets)
+        TvPlatform.GOOGLE_TV -> tls?.let { GoogleTvAdapter(it, secrets) }
+        TvPlatform.ROKU -> RokuEcpAdapter(http)
+        TvPlatform.VIDAA -> tls?.let { VidaaAdapter(it, secrets) }
+        TvPlatform.FIRE_TV -> FireTvAdapter(http, localHttp, secrets)
+        TvPlatform.VIZIO -> VizioAdapter(localHttp, secrets)
+        TvPlatform.PANASONIC_VIERA -> PanasonicVieraAdapter(http)
+    }
+    return if (platforms.size == 1) create(platforms[0]) else AutoDetectAdapter(platforms.map { { create(it) } })
 }

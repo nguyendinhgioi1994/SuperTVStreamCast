@@ -1,5 +1,6 @@
 package com.tuntech.supertvstreamcast.ui.iptv
 
+import com.tuntech.supertvstreamcast.analytics.ClickEvent
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -53,7 +54,7 @@ private const val HALF_HOUR = 1800L
     }
     Column(Modifier.fillMaxSize().padding(GuidePadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         TopRow(stringResource(Res.string.guide_title), state.active?.title(), actions.back) {
-            RoundAction(stringResource(if (grid) Res.string.iptv_guide_list else Res.string.iptv_guide_grid), if (grid) Glyph.MENU else Glyph.KEYPAD) { grid = !grid }
+            RoundAction(stringResource(if (grid) Res.string.iptv_guide_list else Res.string.iptv_guide_grid), if (grid) Glyph.MENU else Glyph.KEYPAD) { ClickEvent.log(if (grid) "iptv_guide_view_list" else "iptv_guide_view_grid"); grid = !grid }
             RoundAction(stringResource(Res.string.guide_add), Glyph.ADD, accent = TvColors.Coral, onClick = onAddGuide)
         }
         state.notice?.let { NoticeBanner(it, actions.clearNotice) }
@@ -62,8 +63,8 @@ private const val HALF_HOUR = 1800L
         val play = { channel: Channel -> actions.play(channel, channels) }
         when {
             channels.isEmpty() -> EmptyNote(stringResource(if (state.guide.isEmpty()) Res.string.iptv_guide_empty else Res.string.no_results))
-            grid -> GuideGrid(state, channels, now, play) { channel, programme -> reminding = channel to programme }
-            else -> LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(14.dp), contentPadding = PaddingValues(bottom = 20.dp)) {
+            grid -> GuideGrid(state, channels, now, play) { channel, programme -> ClickEvent.log("iptv_reminder_open", "view" to "grid"); reminding = channel to programme }
+            else -> LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(14.dp), contentPadding = PaddingValues(bottom = 20.dp + LocalDockInset.current)) {
                 items(channels, key = { it.url }) { channel ->
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button) { play(channel) }.padding(vertical = 4.dp),
@@ -73,7 +74,7 @@ private const val HALF_HOUR = 1800L
                             GlyphIcon(Glyph.PLAY, Modifier.size(16.dp), TvColors.Coral)
                         }
                         upcoming(state.guide[channel.url], now, 4).forEach { programme ->
-                            ProgrammeRow(programme, now, state.reminder(channel.url, programme.start)) { reminding = channel to programme }
+                            ProgrammeRow(programme, now, state.reminder(channel.url, programme.start)) { ClickEvent.log("iptv_reminder_open", "view" to "list"); reminding = channel to programme }
                         }
                     }
                 }
@@ -105,7 +106,7 @@ private const val HALF_HOUR = 1800L
                 }
             }
         }
-        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(6.dp), contentPadding = PaddingValues(bottom = 20.dp)) {
+        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(6.dp), contentPadding = PaddingValues(bottom = 20.dp + LocalDockInset.current)) {
             items(channels, key = { it.url }) { channel ->
                 Row(Modifier.fillMaxWidth().height(RowHeight)) {
                     Column(Modifier.width(ChannelColumn).fillMaxHeight().padding(end = 6.dp).clip(RoundedCornerShape(14.dp)).background(TvColors.Raised)
@@ -163,7 +164,7 @@ private const val HALF_HOUR = 1800L
     }
 }
 
-/** The source's share link as a QR code that the scanner of another TV Space reads back. */
+/** The source's share link as a QR code that the scanner of another Super TV Cast reads back. */
 @Composable internal fun ShareQrDialog(source: IptvSource, onDismiss: () -> Unit) {
     val link = source.shareUrl?.let { buildImportLink(source.name, it) } ?: return
     IptvDialog(stringResource(Res.string.iptv_share_qr), Glyph.LINK, onDismiss = onDismiss) {
@@ -182,13 +183,13 @@ private const val HALF_HOUR = 1800L
     LaunchedEffect(Unit) {
         granted = try { permissions.providePermission(Permission.CAMERA); true } catch (e: CancellationException) { throw e } catch (_: Exception) { false }
     }
-    Column(Modifier.fillMaxSize().padding(GuidePadding), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().padding(GuidePadding).padding(bottom = LocalDockInset.current), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         TopRow(stringResource(Res.string.iptv_scan_qr), onBack = actions.back)
         when (granted) {
             null -> LinearProgressIndicator(Modifier.fillMaxWidth(), color = TvColors.Coral)
             false -> {
                 EmptyNote(stringResource(Res.string.iptv_scan_permission))
-                OutlinedButton(onClick = permissions::openAppSettings, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                OutlinedButton(onClick = { ClickEvent.log("iptv_qr_open_settings"); permissions.openAppSettings() }, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                     Text(stringResource(Res.string.iptv_open_settings))
                 }
             }

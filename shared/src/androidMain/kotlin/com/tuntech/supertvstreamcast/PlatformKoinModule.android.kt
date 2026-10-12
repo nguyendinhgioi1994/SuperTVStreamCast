@@ -25,6 +25,7 @@ actual val PlatformKoinModule: Module = module {
     }
     single<AppPreferences> { createAppPreferences(get()) }
     single<SecretStore> { createSecretStore(get()) }
+    single { com.tuntech.supertvstreamcast.net.createLanBrowser(get()) }
     single {
         MmpManager()
             .add(FirebaseMmpClient())

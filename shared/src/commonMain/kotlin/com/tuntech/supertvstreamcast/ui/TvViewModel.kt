@@ -2,6 +2,9 @@ package com.tuntech.supertvstreamcast.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tuntech.supertvstreamcast.analytics.AppEvent
+import com.tuntech.supertvstreamcast.analytics.EventSink
+import com.tuntech.supertvstreamcast.analytics.log
 import com.tuntech.supertvstreamcast.data.*
 import com.tuntech.supertvstreamcast.domain.*
 import com.tuntech.supertvstreamcast.net.*
@@ -17,7 +20,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-enum class UiError { CONNECTION, PAIRING_CODE, WAKE, COMMAND, PLAYLIST, INVALID_IP, PLAYER, MIRROR, PERMISSION, NO_WIFI, APPS,
+enum class UiError { CONNECTION, CONTROL_DISABLED, UNSUPPORTED_MODEL, PAIRING_CODE, WAKE, COMMAND, PLAYLIST, INVALID_IP, PLAYER, MIRROR, PERMISSION, NO_WIFI, APPS,
     XTREAM_INPUT, XTREAM, XTREAM_AUTH, FILE, STREAM_URL, GUIDE, GUIDE_NO_CHANNELS, DOWNLOAD }
 data class TvUiState(
     val brand: TvBrand = TvBrand.SAMSUNG,
@@ -27,8 +30,9 @@ data class TvUiState(
     val apps: List<TvApp> = emptyList(), val appsLoading: Boolean = false,
     val scanning: Boolean = false, val scanned: Boolean = false, val discovered: List<TvDevice> = emptyList(),
     val lastHost: String = "",
-    /** The TV is showing a pairing code that has to be typed in. */
+    /** The TV is showing a pairing code of [codeLength] characters that has to be typed in. */
     val codeRequested: Boolean = false,
+    val codeLength: Int = 6,
     /** Hosts whose network adapter address is known, so a Wake-on-LAN packet can be sent to them. */
     val wakeHosts: Set<String> = emptySet(),
     /** A wake packet went out; nothing confirms that the TV received it. */
@@ -49,9 +53,13 @@ class TvViewModel(
     /** Pairing tokens, pinned TV certificates and Wake-on-LAN addresses. */
     private val secrets: SecretStore = MemorySecretStore(),
     private val tls: TlsOpener = ::openTvTls,
+    /** DNS-SD / SSDP announcements heard during a scan. */
+    browser: LanBrowser = LanBrowser.None,
     private val broadcast: suspend (String, Int, ByteArray) -> Unit = ::sendBroadcast,
     /** Tab opened first; onboarding passes the goal the user picked. */
     startTab: Feature = Feature.HOME,
+    /** Connection results and first remote use; never hosts, secrets or typed text. */
+    private val events: EventSink = AppEvent::log,
 ) : ViewModel() {
     private val savedDevice = prefs.lastDevice.split('|').takeIf { it.size == 3 && isLocalIpv4(it[1]) }
     private val mutable = MutableStateFlow(TvUiState(
@@ -61,11 +69,17 @@ class TvViewModel(
         wakeHosts = setOfNotNull(savedDevice?.get(1)?.takeIf { secrets.get(macKey(it)) != null }),
     ))
     val state: StateFlow<TvUiState> = mutable.asStateFlow()
-    private val discovery = TvDiscovery(discoveryHttp, plainSockets(discoveryHttp))
+    private val unlockState = MutableStateFlow(FeatureUnlocks())
+    /** Premium remote features opened by a rewarded ad; kept for this session only. */
+    val unlocks: StateFlow<FeatureUnlocks> = unlockState.asStateFlow()
+    fun unlock(feature: PremiumFeature, minutes: Int, now: Long) = unlockState.update { it.unlock(feature, now, minutes) }
+    private val discovery = TvDiscovery(discoveryHttp, plainSockets(discoveryHttp), browser)
     private var adapter: RemoteAdapter? = null
     /** Adapter holding an open pairing session while the user reads the code off the TV. */
     private var pairing: RemoteAdapter? = null
     private val commands = Mutex()
+    /** [AppEvent.FEATURE_USED] is logged once per connection, after the first command the TV accepted. */
+    private var used = false
 
     fun back() = mutable.update {
         when {
@@ -96,27 +110,39 @@ class TvViewModel(
     fun clearError() = mutable.update { it.copy(error = null) }
     fun report(error: UiError) = mutable.update { it.copy(error = error) }
 
-    /** Picking a discovered TV switches brand; PSK brands still need the key typed by the user. */
+    /**
+     * Picking a discovered TV connects with the protocol that answered. The chosen brand is kept when it
+     * ships that platform (a TCL Roku TV stays TCL), otherwise it switches. Sony still needs the PSK typed.
+     */
     fun pick(device: TvDevice) {
-        brand(device.brand)
+        val platform = device.platform ?: device.brand.platforms.singleOrNull()
+        brand(if (platform != null && platform in state.value.brand.platforms) state.value.brand else device.brand)
         mutable.update { it.copy(lastHost = device.host) }
-        if (!device.brand.needsPsk) connect(device.host, "")
+        if (platform != TvPlatform.SONY_BRAVIA) connect(device.host, "", platform)
     }
-    fun connect(ip: String, secret: String) {
+    /** [platform] skips detection when discovery already knows the TV's protocol. */
+    fun connect(ip: String, secret: String, platform: TvPlatform? = null) {
         val host = ip.trim()
         if (!isLocalIpv4(host)) { report(UiError.INVALID_IP); return }
         val brand = state.value.brand
-        if (!brand.hasRemoteAdapter) return
         disconnect()
         // A typed code continues the pairing session that made the TV show it.
         val resumed = pairing?.takeIf { state.value.codeRequested && secret.isNotBlank() }
         if (resumed == null) dropPairing()
-        val created = resumed ?: createAdapter(brand, http, sockets.open, secrets, tls) ?: return
+        val created = resumed ?: createAdapter(brand, http, sockets.open, secrets, tls, platform, sockets.http) ?: return
         mutable.update { it.copy(wakeSent = false) }
-        work(UiError.CONNECTION, { e -> if (e is PairingCodeInvalid) UiError.PAIRING_CODE else null }) {
+        val attempt = arrayOf("brand" to brand, "discovered" to (platform != null), "pairing_code" to (resumed != null))
+        // Logged first: an immediate dispatcher can finish a failing handshake before work() returns.
+        if (!state.value.busy) events.log(AppEvent.TV_CONNECT_ATTEMPT, *attempt)
+        work(UiError.CONNECTION, { e -> when (e) { is PairingCodeInvalid -> UiError.PAIRING_CODE; is RemoteControlDisabled -> UiError.CONTROL_DISABLED; is UnsupportedTvModel -> UiError.UNSUPPORTED_MODEL; else -> null } },
+            failed = { error -> events.log(AppEvent.TV_CONNECT_FAIL, *attempt, "reason" to error) }) {
             val session = try { created.connect(host, secret.trim()) } catch (e: Exception) {
                 when (e) {
-                    is PairingCodeRequired -> { pairing = created; mutable.update { it.copy(codeRequested = true, lastHost = host) }; return@work }
+                    is PairingCodeRequired -> {
+                        pairing = created; mutable.update { it.copy(codeRequested = true, codeLength = e.length, lastHost = host) }
+                        events.log(AppEvent.TV_CONNECT_CODE_REQUIRED, *attempt)
+                        return@work
+                    }
                     is PairingCodeInvalid, is CancellationException -> Unit
                     else -> { created.disconnect(); if (pairing === created) dropPairing() }
                 }
@@ -124,6 +150,8 @@ class TvViewModel(
             }
             pairing = null
             adapter = created
+            used = false
+            events.log(AppEvent.TV_CONNECT_SUCCESS, *attempt, "device_brand" to session.device.brand)
             if (macBytes(session.device.mac) != null) secrets.put(macKey(host), session.device.mac)
             prefs.lastDevice = listOf(session.device.brand.name, host, session.device.name.replace('|', ' ')).joinToString("|")
             mutable.update { it.copy(connected = true, connectionOpen = false, codeRequested = false, device = session.device, capabilities = session.capabilities, lastHost = host,
@@ -158,15 +186,15 @@ class TvViewModel(
         if (ip == null) { report(UiError.NO_WIFI); return }
         mutable.update { it.copy(scanning = true, discovered = emptyList(), error = null) }
         viewModelScope.launch {
-            try { discovery.scan(ip) { device -> mutable.update { it.copy(discovered = (it.discovered + device).sortedBy { d -> d.host.substringAfterLast('.').toInt() }) } } }
+            try { discovery.scan(ip) { device -> mutable.update { it.copy(discovered = (it.discovered + device).sortedWith(deviceOrder)) } } }
             finally { mutable.update { it.copy(scanning = false, scanned = true) } }
         }
     }
-    fun send(key: RemoteKey) { if (state.value.can(key)) command { it.send(key) } }
-    fun sendText(text: String) { if (text.isNotEmpty() && state.value.capabilities.text) command { it.sendText(text) } }
-    fun launch(app: TvApp) = command { it.launch(app) }
-    fun move(dx: Int, dy: Int) { if (state.value.capabilities.pointer) command { it.move(dx, dy) } }
-    fun click() { if (state.value.capabilities.pointer) command { it.click() } }
+    fun send(key: RemoteKey) { if (state.value.can(key)) command("key") { it.send(key) } }
+    fun sendText(text: String) { if (text.isNotEmpty() && state.value.capabilities.text) command("text") { it.sendText(text) } }
+    fun launch(app: TvApp) = command("app") { it.launch(app) }
+    fun move(dx: Int, dy: Int) { if (state.value.capabilities.pointer) command("pointer") { it.move(dx, dy) } }
+    fun click() { if (state.value.capabilities.pointer) command("pointer") { it.click() } }
     fun loadApps() {
         val current = adapter ?: return
         if (state.value.appsLoading) return
@@ -181,25 +209,30 @@ class TvViewModel(
         }
     }
     /** Remote commands run in order without blocking the UI; a failure ends the session honestly. */
-    private fun command(action: suspend (RemoteAdapter) -> Unit) {
+    private fun command(kind: String, action: suspend (RemoteAdapter) -> Unit) {
         val current = adapter ?: return
         if (!state.value.connected) return
         viewModelScope.launch {
             commands.withLock {
                 if (adapter !== current) return@withLock
-                try { action(current) } catch (e: CancellationException) { throw e } catch (_: Exception) {
-                    disconnect(); mutable.update { it.copy(error = UiError.COMMAND) }
+                try {
+                    action(current)
+                    if (!used) { used = true; events.log(AppEvent.FEATURE_USED, "feature" to Feature.REMOTE, "action" to kind, "brand" to state.value.brand) }
+                } catch (e: CancellationException) { throw e } catch (e: Exception) {
+                    disconnect(); mutable.update { it.copy(error = if (e is RemoteControlDisabled) UiError.CONTROL_DISABLED else UiError.COMMAND) }
                 }
             }
         }
     }
-    private fun work(error: UiError, classify: (Exception) -> UiError? = { null }, action: suspend () -> Unit): Job? {
+    private fun work(error: UiError, classify: (Exception) -> UiError? = { null }, failed: (UiError) -> Unit = {}, action: suspend () -> Unit): Job? {
         if (state.value.busy) return null
         mutable.update { it.copy(busy = true, error = null) }
         return viewModelScope.launch {
             try { action() } catch (e: CancellationException) { throw e } catch (e: Exception) {
                 if (error == UiError.CONNECTION) disconnect()
-                mutable.update { it.copy(error = classify(e) ?: error) }
+                val shown = classify(e) ?: error
+                mutable.update { it.copy(error = shown) }
+                failed(shown)
             } finally { mutable.update { it.copy(busy = false) } }
         }
     }

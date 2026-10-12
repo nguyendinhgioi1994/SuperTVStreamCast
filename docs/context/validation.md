@@ -48,6 +48,12 @@ What was verified, using a scratch Kotlin/JVM project that compiles the reposito
 
 Not verified: Compose UI files (RemoteScreen, TvScaffold, PlaylistScreen, CinemaComponents, App) and iOS actuals (`LocalNetwork.ios.kt`) were reviewed manually only. Run the standard build commands from CLAUDE.md before merging. No Samsung, LG or Sony TV was available: pairing prompts, token reuse, LG unsigned-manifest registration, pointer socket, TLS pinning against real TV certificates, scan timing and app launch remain hardware gates.
 
+## Fire TV, Vizio, Panasonic and more brands (11/10/2026)
+
+- `./gradlew :androidApp:assembleDebug :shared:testAndroidHostTest :shared:compileKotlinIosSimulatorArm64` passed with these changes, as did `:shared:compileTestKotlinIosSimulatorArm64`; final run 126 host tests (whole module, including other sessions' new suites), 0 failures (new `NewTvPlatformsTest`: 7 tests — brand → platform order with Google TV last, Vizio messages and PIN pairing with token reuse and wrong-PIN retry, Fire TV PIN pairing/client token/stored-token reuse/app shortcuts, Panasonic identity/volume check/SOAP key and refusal of encrypted models, detection stopping at `UnsupportedTvModel`).
+- Strings `auto_setup`, `other_tvs`, `firetv_setup`, `vizio_setup`, `unsupported_model` added to all 17 resource folders (machine-written translations, need native review); `tcl_setup` and `other_setup` removed (replaced by `auto_setup`). All files parse as XML.
+- Protocol details come from community clients (pyvizio, panasonic_viera, Home Assistant Fire TV thread), not vendor documentation. No Fire TV, Vizio or Panasonic device was available: PIN display, token acceptance, `appsV2` reply shape, Vizio port choice, Viera key acknowledgements and detection timing on real networks remain hardware gates.
+
 ## IPTV sources, EPG and usage guide
 
 Same environment limit: Google Maven is blocked (403), so `:androidApp:assembleDebug`, `:shared:testAndroidHostTest` and iOS compile/link were **not run**.
@@ -76,9 +82,9 @@ Saved sources, Xtream movies/series, favorites / continue watching / hidden chan
 - `./gradlew :shared:testAndroidHostTest :androidApp:assembleDebug :shared:compileKotlinIosSimulatorArm64` and `:shared:linkDebugFrameworkIosSimulatorArm64` pass. New tests: `IptvLibraryTest` (9) and two rewritten Xtream tests in `IptvSourcesTest`.
 - EN/VI string keys match.
 
-- Xcode simulator build passes; on the iPhone 17 simulator the app starts and iOS offers to open a `tvspace://import-playlist` link in TV Space (scheme registered). The run stopped at the consent form and onboarding, so the IPTV tab itself was not reached. Installing on the attached Android phone was refused by the device (needs confirmation on the phone).
+- Xcode simulator build passes; on the iPhone 17 simulator the app starts and iOS offers to open a `supertvcast://import-playlist` link in TV Space (scheme registered). The run stopped at the consent form and onboarding, so the IPTV tab itself was not reached. Installing on the attached Android phone was refused by the device (needs confirmation on the phone).
 
-Not verified: the new screens, the saved library across an app restart, playback resume, Android full screen, the `tvspace://` link on either platform and real Xtream movie/series panels are untested at runtime. `IptvViewModel` has no unit test.
+Not verified: the new screens, the saved library across an app restart, playback resume, Android full screen, the `supertvcast://` link on either platform and real Xtream movie/series panels are untested at runtime. `IptvViewModel` has no unit test.
 
 ## Google TV Remote v2, Wake-on-LAN and secret store (09/10/2026)
 
@@ -102,3 +108,19 @@ Not verified:
 - Android runtime of the Keystore-backed pieces (AES secret store, RSA identity, TLS 1.2 client-certificate handshake, UDP broadcast): the two local emulators did not finish booting headless, so this code is compiled and reviewed only.
 - Wake-on-LAN against a real TV (does the TV wake, is the reported address the one that listens), and broadcast sending on a physical iPhone, which needs Apple's multicast entitlement.
 - The connection dialog's code field, wake button and Settings → Forget paired TVs were not exercised in a running UI.
+
+## Settings, language, 15 locales, Roku/VIDAA, click and outcome analytics (11/10/2026)
+
+- `./gradlew :androidApp:assembleDebug :shared:testAndroidHostTest :shared:compileKotlinIosSimulatorArm64 :shared:linkDebugFrameworkIosSimulatorArm64` passed; host tests: 104 tests, 0 failures, 0 errors. (An earlier iOS compile for the click events had stopped on a full disk; it now passes.)
+- New `TvViewModelEventTest` (3): against a mocked Sony TV, `tv_connect_attempt` then `tv_connect_success` only after the handshake, one `feature_used` for two accepted keys, none for a key the TV did not report, `tv_connect_fail` with `reason` on a rejected PSK, nothing for a non-local address, and no parameter carries the host or PSK.
+
+Not verified: events arriving in Firebase DebugView, any runtime UI of this round on Android or iOS, and real Roku/VIDAA TVs.
+
+## IPTV `feature_used` on real playback start (11/10/2026)
+
+`StreamPlayer` gained `onStarted` (Media3 `onIsPlayingChanged(true)`, AVPlayer `timeControlStatus` = playing), wired to `IptvViewModel.started`.
+
+- `:androidApp:assembleDebug`, `:shared:testAndroidHostTest` (112 tests, 0 failures, with other sessions' new remote platforms in the tree) and `:shared:compileKotlinIosSimulatorArm64` passed together. New `IptvViewModelTest.featureUsedIsLoggedWhenThePlayerReallyStartsOncePerPlay`.
+- `:shared:linkDebugFrameworkIosSimulatorArm64` passed (after a parallel session's unfinished `data/cast/MediaServer.kt` was fixed; an earlier run failed only because that build replaced the klib mid-link).
+
+Not verified: that `onStarted` fires on a real device (Android local, Chromecast via `CastPlayer`, iOS AVPlayer) and that the event reaches Firebase DebugView.

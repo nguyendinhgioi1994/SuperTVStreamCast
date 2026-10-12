@@ -1,5 +1,6 @@
 package com.tuntech.supertvstreamcast.ui
 
+import com.tuntech.monetization.iap.IapActiveBox
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -51,7 +52,7 @@ internal fun Feature.navLabel() = when(this) {
     Feature.MIRROR -> Res.string.nav_mirror; Feature.IPTV -> Res.string.nav_iptv; Feature.SETTINGS -> Res.string.nav_settings
 }
 internal fun UiError.label() = when(this) {
-    UiError.CONNECTION -> Res.string.connection_failed; UiError.COMMAND -> Res.string.command_failed
+    UiError.CONNECTION -> Res.string.connection_failed; UiError.CONTROL_DISABLED -> Res.string.control_disabled; UiError.UNSUPPORTED_MODEL -> Res.string.unsupported_model; UiError.COMMAND -> Res.string.command_failed
     UiError.PAIRING_CODE -> Res.string.pairing_code_error; UiError.WAKE -> Res.string.wake_error
     UiError.PLAYLIST -> Res.string.playlist_error; UiError.INVALID_IP -> Res.string.invalid_ip
     UiError.PERMISSION -> Res.string.lan_denied; UiError.PLAYER -> Res.string.player_error
@@ -81,10 +82,33 @@ internal fun UiError.label() = when(this) {
         .border(1.dp,TvColors.Outline.copy(alpha=0.7f),RoundedCornerShape(TvDimens.Radius)).padding(20.dp),
         verticalArrangement=Arrangement.spacedBy(12.dp),content=content)
 }
-/** A feature's glossy tile: its own gradient with the duotone icon on top. [accent] tints the edge. */
-@Composable internal fun IconBubble(feature: Feature, accent: Color=TvColors.featureAccent(feature), size: androidx.compose.ui.unit.Dp=48.dp) {
+/** Home's tappable tile: filled with [brush] and glossy, flat (no shadow). Content uses [TvColors.OnAccent]. */
+@Composable internal fun GradientCard(brush: Brush, modifier: Modifier=Modifier, enabled: Boolean=true, onClick: ()->Unit, content: @Composable ColumnScope.()->Unit) {
+    val source=remember {MutableInteractionSource()}
+    val shape=RoundedCornerShape(TvDimens.RadiusLg)
+    Card(onClick=onClick,enabled=enabled,shape=shape,interactionSource=source,
+        colors=CardDefaults.cardColors(containerColor=Color.Transparent,disabledContainerColor=Color.Transparent),
+        modifier=modifier.pressScale(source,0.97f).clip(shape).background(brush).gloss().then(if(enabled) Modifier else Modifier.graphicsLayer{alpha=0.5f}),content=content)
+}
+/** Home's info card (as [ConnectionCard]): surface gradient, hairline outline, flat. */
+@Composable internal fun SurfaceCard(modifier: Modifier=Modifier, onClick: (()->Unit)?=null, enabled: Boolean=true,
+    border: Color=TvColors.Outline.copy(alpha=0.7f), content: @Composable ColumnScope.()->Unit) {
+    val shape=RoundedCornerShape(TvDimens.RadiusLg)
+    val colors=CardDefaults.cardColors(containerColor=Color.Transparent,disabledContainerColor=Color.Transparent)
+    val surface=modifier.clip(shape).background(TvColors.SurfaceGradient)
+    if(onClick!=null) Card(onClick=onClick,enabled=enabled,shape=shape,colors=colors,border=BorderStroke(1.dp,border),modifier=surface,content=content)
+    else Card(shape=shape,colors=colors,border=BorderStroke(1.dp,border),modifier=surface,content=content)
+}
+/** The translucent round arrow at the end of a [GradientCard]. */
+@Composable internal fun ArrowChip() {
+    Box(Modifier.size(30.dp).background(TvColors.OnAccent.copy(alpha=0.2f),CircleShape),contentAlignment=Alignment.Center) {
+        GlyphIcon(Glyph.RIGHT,Modifier.size(16.dp),TvColors.OnAccent)
+    }
+}
+/** A feature's glossy tile: its own gradient with the duotone icon on top. */
+@Composable internal fun IconBubble(feature: Feature, size: androidx.compose.ui.unit.Dp=48.dp) {
     val shape=RoundedCornerShape(size*0.34f)
-    Box(Modifier.size(size).shadow(8.dp,shape,ambientColor=accent,spotColor=accent).clip(shape).background(TvColors.featureGradient(feature))
+    Box(Modifier.size(size).clip(shape).background(TvColors.featureGradient(feature))
         .drawBehind{drawCircle(Color.White.copy(alpha=0.22f),this.size.width*0.6f,androidx.compose.ui.geometry.Offset(this.size.width*0.2f,0f))},contentAlignment=Alignment.Center) {
         FeatureIcon(feature,Modifier.size(size*0.54f),TvColors.OnAccent)
     }
@@ -113,8 +137,7 @@ internal fun UiError.label() = when(this) {
     val shape=RoundedCornerShape(TvDimens.RadiusXl)
     // The picture drifts very slowly so the hero never looks frozen.
     val drift=rememberPulse(18000)
-    Box(modifier.fillMaxWidth().heightIn(min=300.dp).shadow(20.dp,shape,ambientColor=TvColors.Pink,spotColor=TvColors.Cyan)
-        .clip(shape).border(1.5.dp,TvColors.Gradient,shape)) {
+    Box(modifier.fillMaxWidth().heightIn(min=300.dp).clip(shape).border(1.5.dp,TvColors.Gradient,shape)) {
         Crossfade(TvArt.home,Modifier.matchParentSize(),tween(TvMotion.Screen),label="heroArt") {art ->
             Image(painterResource(art),null,Modifier.fillMaxSize().graphicsLayer{val zoom=1.04f+0.06f*drift.value;scaleX=zoom;scaleY=zoom},
                 contentScale=ContentScale.Crop,alignment=Alignment.TopCenter)
@@ -130,17 +153,27 @@ internal fun UiError.label() = when(this) {
         }
     }
 }
-@Composable internal fun AppHeader(brand: TvBrand, onSettings: ()->Unit) {
+@Composable internal fun AppHeader(brand: TvBrand, onPremium: ()->Unit, onSettings: ()->Unit) {
     Row(Modifier.fillMaxWidth().padding(vertical=4.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
         BrandMark(Modifier.size(42.dp))
         Column(Modifier.weight(1f)) {
             Text(stringResource(Res.string.app_name),style=MaterialTheme.typography.titleLarge)
             Text(stringResource(Res.string.home_eyebrow),style=MaterialTheme.typography.labelSmall,color=TvColors.Muted)
         }
+        IapActiveBox {PremiumAction(onPremium)}
         Box(Modifier.clip(RoundedCornerShape(100.dp)).background(TvColors.Raised).border(1.dp,TvColors.Outline,RoundedCornerShape(100.dp))
             .clickable(role=Role.Button,onClick=onSettings).padding(12.dp),contentAlignment=Alignment.Center) {
             Text(brand.title.substringBefore(" / ").substringBefore(" BRAVIA"),style=MaterialTheme.typography.labelLarge,color=TvColors.Cyan,maxLines=1)
         }
+    }
+}
+/** Crown button that opens the paywall from a page header; callers wrap it in IapActiveBox. */
+@Composable internal fun PremiumAction(onClick: ()->Unit) {
+    val label=stringResource(Res.string.premium_title)
+    val source=remember {MutableInteractionSource()}
+    IconButton(onClick=onClick,interactionSource=source,modifier=Modifier.size(TvDimens.IconButton).pressScale(source).clip(CircleShape)
+        .background(TvColors.PremiumGradient).semantics{contentDescription=label}) {
+        GlyphIcon(Glyph.CROWN,color=TvColors.OnAccent)
     }
 }
 /**
@@ -164,7 +197,7 @@ internal fun UiError.label() = when(this) {
     val widths=remember {FloatArray(entries.size)}
     Layout(content={
         entries.forEachIndexed {index,feature -> DockItem(feature,tab==feature,fractions[index]) {onTab(feature)}}
-    },modifier=Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal=16.dp,vertical=10.dp)
+    },modifier=Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal=16.dp)
         .shadow(22.dp,shape,ambientColor=TvColors.Cyan,spotColor=TvColors.Pink).clip(shape).background(TvColors.Surface)
         .border(1.dp,TvColors.Outline.copy(alpha=0.7f),shape).padding(7.dp)
         .drawBehind {
@@ -238,9 +271,9 @@ private const val DockGrow=1.3f
     val border by animateColorAsState(if(state.connected) TvColors.Green.copy(alpha=0.6f) else TvColors.Outline,tween(TvMotion.Card),label="connectionBorder")
     val halo by animateFloatAsState(if(state.connected) 1f else 0f,tween(TvMotion.Modal),label="connectionHalo")
     val glow=TvColors.Green
-    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(TvColors.SurfaceGradient)
+    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(TvDimens.RadiusLg)).background(TvColors.SurfaceGradient)
         .drawBehind{if(halo>0f){val center=androidx.compose.ui.geometry.Offset(size.height/2,size.height/2);drawCircle(TvColors.glow(glow,center,size.width*0.6f,halo),size.width*0.6f,center)}}
-        .border(1.dp,border,RoundedCornerShape(24.dp)).padding(16.dp),
+        .border(1.dp,border,RoundedCornerShape(TvDimens.RadiusLg)).padding(16.dp),
         verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
         IconBubble(Feature.MIRROR,size=44.dp)
         Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)) {

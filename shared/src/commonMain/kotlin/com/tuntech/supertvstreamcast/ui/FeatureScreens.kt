@@ -1,5 +1,6 @@
 package com.tuntech.supertvstreamcast.ui
 
+import com.tuntech.monetization.iap.IapActiveBox
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.snap
@@ -31,22 +32,25 @@ import com.tuntech.supertvstreamcast.theme.*
 import org.jetbrains.compose.resources.*
 import shared.resources.*
 
-@Composable internal fun HomeContent(state: TvUiState,onConnect: ()->Unit,onDisconnect: ()->Unit,onTab: (Feature)->Unit) {
-    Reveal(0) {Scene(stringResource(Res.string.home_title),stringResource(Res.string.home_body),stringResource(Res.string.hero_badge))}
+@Composable internal fun HomeContent(state: TvUiState,onConnect: ()->Unit,onDisconnect: ()->Unit,onPremium: (String)->Unit,onTab: (Feature)->Unit) {
+    // Free users get the premium slides in the hero spot; premium users keep the artwork scene.
+    Reveal(0) {
+        IapActiveBox(allowAll=true) {active ->
+            if(active) Scene(stringResource(Res.string.home_title),stringResource(Res.string.home_body),stringResource(Res.string.hero_badge))
+            else PremiumCarousel(onPremium)
+        }
+    }
     Reveal(1) {ConnectionCard(state,onConnect,onDisconnect)}
     Reveal(2) {Text(stringResource(Res.string.quick_access),style=MaterialTheme.typography.titleLarge)}
     Reveal(3) {
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-            FeatureCard(Feature.REMOTE,stringResource(Res.string.remote_body),TvColors.Cyan,Modifier.weight(1f).fillMaxHeight()){onTab(Feature.REMOTE)}
-            FeatureCard(Feature.MIRROR,stringResource(Res.string.mirror_body),TvColors.Violet,Modifier.weight(1f).fillMaxHeight()){onTab(Feature.MIRROR)}
+            FeatureCard(Feature.REMOTE,stringResource(Res.string.remote_body),Modifier.weight(1f).fillMaxHeight()){onTab(Feature.REMOTE)}
+            FeatureCard(Feature.MIRROR,stringResource(Res.string.mirror_body),Modifier.weight(1f).fillMaxHeight()){onTab(Feature.MIRROR)}
         }
     }
     Reveal(4) {
-        val source=remember {MutableInteractionSource()}
-        val shape=RoundedCornerShape(26.dp)
-        Card(onClick={onTab(Feature.IPTV)},shape=shape,colors=CardDefaults.cardColors(containerColor=Color.Transparent),interactionSource=source,
-            modifier=Modifier.fillMaxWidth().pressScale(source,0.98f).shadow(14.dp,shape,ambientColor=TvColors.Coral,spotColor=TvColors.Coral)) {
-            Row(Modifier.fillMaxWidth().background(TvColors.featureGradient(Feature.IPTV)).gloss().padding(14.dp),
+        GradientCard(TvColors.featureGradient(Feature.IPTV),Modifier.fillMaxWidth(),onClick={onTab(Feature.IPTV)}) {
+            Row(Modifier.fillMaxWidth().padding(14.dp),
                 verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(14.dp)) {
                 Image(painterResource(TvArt.iptv),null,Modifier.size(width=96.dp,height=72.dp).clip(RoundedCornerShape(18.dp))
                     .border(1.5.dp,TvColors.OnAccent.copy(alpha=0.5f),RoundedCornerShape(18.dp)),contentScale=ContentScale.Crop)
@@ -60,12 +64,9 @@ import shared.resources.*
     }
 }
 /** A tile filled with its feature's gradient, with the duotone icon and white copy on top. */
-@Composable private fun FeatureCard(feature: Feature,body: String,accent: Color,modifier: Modifier,onClick: ()->Unit) {
-    val source=remember {MutableInteractionSource()}
-    val shape=RoundedCornerShape(26.dp)
-    Card(onClick=onClick,modifier=modifier.pressScale(source,0.97f).shadow(14.dp,shape,ambientColor=accent,spotColor=accent),shape=shape,
-        colors=CardDefaults.cardColors(containerColor=Color.Transparent),interactionSource=source) {
-        Column(Modifier.fillMaxSize().background(TvColors.featureGradient(feature)).gloss().padding(18.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
+@Composable private fun FeatureCard(feature: Feature,body: String,modifier: Modifier,onClick: ()->Unit) {
+    GradientCard(TvColors.featureGradient(feature),modifier,onClick=onClick) {
+        Column(Modifier.fillMaxSize().padding(18.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
             Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
                 Box(Modifier.size(48.dp).clip(RoundedCornerShape(16.dp)).background(TvColors.OnAccent.copy(alpha=0.2f)),contentAlignment=Alignment.Center) {
                     FeatureIcon(feature,Modifier.size(28.dp),TvColors.OnAccent)
@@ -77,11 +78,6 @@ import shared.resources.*
                 Text(body,style=MaterialTheme.typography.bodyMedium,color=TvColors.OnAccent.copy(alpha=0.88f))
             }
         }
-    }
-}
-@Composable private fun ArrowChip() {
-    Box(Modifier.size(30.dp).background(TvColors.OnAccent.copy(alpha=0.2f),CircleShape),contentAlignment=Alignment.Center) {
-        GlyphIcon(Glyph.RIGHT,Modifier.size(16.dp),TvColors.OnAccent)
     }
 }
 /** Two soft highlights that make a gradient surface look glossy. */
@@ -113,40 +109,17 @@ internal fun Modifier.gloss(): Modifier = drawBehind {
         }
     }
 }
-@Composable internal fun MirrorContent(onShare: (() -> Unit)?) {
-    Reveal(0) {Heading(stringResource(Res.string.mirror_title))}
-    Reveal(1) {Artwork(Modifier.height(210.dp),TvArt.mirror)}
-    val steps=listOf(Res.string.mirror_step_wifi to Res.string.mirror_step_wifi_body,
-        Res.string.mirror_step_share to Res.string.mirror_step_share_body,Res.string.mirror_step_tv to Res.string.mirror_step_tv_body)
-    CinemaPanel(Modifier.fillMaxWidth()) {
-        steps.forEachIndexed {index,(title,body) ->
-            Reveal(index+2) {
-                val line=TvColors.Violet.copy(alpha=0.3f)
-                // A thin rail joins each number to the next one, like a timeline.
-                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).drawBehind {
-                    if(index<steps.lastIndex) drawLine(line,Offset(16.dp.toPx(),36.dp.toPx()),Offset(16.dp.toPx(),size.height+12.dp.toPx()),1.5.dp.toPx())
-                }.padding(vertical=5.dp),horizontalArrangement=Arrangement.spacedBy(14.dp)) {
-                    Box(Modifier.size(32.dp).background(TvColors.featureGradient(Feature.MIRROR),CircleShape),contentAlignment=Alignment.Center) {
-                        Text("${index+1}",style=MaterialTheme.typography.labelLarge,color=TvColors.OnAccent)
-                    }
-                    Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)) {
-                        Text(stringResource(title),style=MaterialTheme.typography.titleSmall)
-                        Text(stringResource(body),style=MaterialTheme.typography.bodyMedium,color=TvColors.Muted)
-                    }
-                }
-            }
-        }
-    }
-    if(onShare!=null) PrimaryCta(stringResource(Res.string.mirror_action),onClick=onShare)
-    else CinemaPanel {Text(stringResource(Res.string.mirror_ios),style=MaterialTheme.typography.bodyLarge,color=TvColors.Cyan)}
-    Text(stringResource(Res.string.mirror_note),style=MaterialTheme.typography.bodySmall,color=TvColors.Muted)
+/** The Cast tab (Feature.MIRROR): media casting to DLNA / Chromecast plus the system screen-mirroring guide. */
+@Composable internal fun MirrorContent(onShare: (() -> Unit)?,onIptv: ()->Unit={}) {
+    com.tuntech.supertvstreamcast.ui.cast.CastTab(onShare,onIptv)
 }
-@Composable internal fun SettingsContent(state: TvUiState,onBrand: (TvBrand)->Unit,onPremium: (()->Unit)?=null,onForgetTvs: ()->Unit={},onTheme: (TvThemeMode)->Unit={}) {
+@Composable internal fun SettingsContent(state: TvUiState,onTvSettings: ()->Unit,onPremium: ()->Unit={},onTheme: (TvThemeMode)->Unit={},
+    links: SettingsLinks=SettingsLinks()) {
     Heading(stringResource(Res.string.settings_title),stringResource(Res.string.tagline))
-    if(onPremium!=null) {
+    IapActiveBox {
         val premiumShape=RoundedCornerShape(24.dp)
         Card(onClick=onPremium,shape=premiumShape,colors=CardDefaults.cardColors(containerColor=Color.Transparent),
-            modifier=Modifier.fillMaxWidth().shadow(14.dp,premiumShape,ambientColor=TvColors.Amber,spotColor=TvColors.Pink)) {
+            modifier=Modifier.fillMaxWidth()) {
             Row(Modifier.fillMaxWidth().background(TvColors.PremiumGradient).gloss().shimmer().padding(18.dp),
                 verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(14.dp)) {
                 Box(Modifier.size(46.dp).clip(RoundedCornerShape(16.dp)).background(TvColors.OnAccent.copy(alpha=0.22f)),contentAlignment=Alignment.Center) {GlyphIcon(Glyph.CROWN,color=TvColors.OnAccent)}
@@ -158,8 +131,32 @@ internal fun Modifier.gloss(): Modifier = drawBehind {
             }
         }
     }
+    TvSettingsRow(state,onTvSettings)
     Text(stringResource(Res.string.appearance_title),style=MaterialTheme.typography.titleMedium)
     ThemeSelector(LocalTvThemeMode.current,onTheme)
+    SettingsGroups(links)
+    Text(stringResource(Res.string.about),Modifier.fillMaxWidth(),style=MaterialTheme.typography.labelLarge,color=TvColors.Coral,textAlign=androidx.compose.ui.text.style.TextAlign.Center)
+}
+/** One compact row for the TV: brand and connection, opening [TvSettingsContent]. */
+@Composable private fun TvSettingsRow(state: TvUiState,onClick: ()->Unit) {
+    val shape=RoundedCornerShape(TvDimens.Radius)
+    val status=state.device?.name?.takeIf{state.connected&&it.isNotBlank()} ?: stringResource(if(state.connected) Res.string.connected else Res.string.not_connected)
+    Row(Modifier.fillMaxWidth().clip(shape).background(TvColors.SurfaceGradient).border(1.dp,TvColors.Outline.copy(alpha=0.7f),shape)
+        .clickable(role=Role.Button,onClick=onClick).padding(14.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(14.dp)) {
+        Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(TvColors.Gradient),contentAlignment=Alignment.Center) {
+            Text(if(state.brand==TvBrand.LG) "LG" else state.brand.title.take(1),style=MaterialTheme.typography.titleMedium,color=TvColors.OnAccent)
+        }
+        Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(2.dp)) {
+            Text(stringResource(Res.string.tv_settings_title),style=MaterialTheme.typography.titleMedium)
+            Text("${state.brand.title} · $status",style=MaterialTheme.typography.bodyMedium,color=if(state.connected) TvColors.Cyan else TvColors.Muted,
+                maxLines=1,overflow=TextOverflow.Ellipsis)
+        }
+        GlyphIcon(Glyph.RIGHT,Modifier.size(18.dp),TvColors.Muted)
+    }
+}
+/** Settings → TV: the brand choice plus what is stored about paired TVs and how to forget it. */
+@Composable internal fun TvSettingsContent(state: TvUiState,onBack: ()->Unit,onBrand: (TvBrand)->Unit,onForgetTvs: ()->Unit) {
+    com.tuntech.supertvstreamcast.ui.iptv.TopRow(stringResource(Res.string.tv_settings_title),onBack=onBack)
     Text(stringResource(Res.string.choose_brand),style=MaterialTheme.typography.titleMedium)
     BrandGrid(state.brand,onBrand)
     CinemaPanel(Modifier.fillMaxWidth()) {
@@ -171,7 +168,6 @@ internal fun Modifier.gloss(): Modifier = drawBehind {
             Text(stringResource(Res.string.forget_tvs))
         }
     }
-    Text(stringResource(Res.string.about),Modifier.fillMaxWidth(),style=MaterialTheme.typography.labelLarge,color=TvColors.Coral,textAlign=androidx.compose.ui.text.style.TextAlign.Center)
 }
 /** System / Light / Dark. The thumb slides to the active choice. */
 @Composable internal fun ThemeSelector(mode: TvThemeMode,onMode: (TvThemeMode)->Unit) {

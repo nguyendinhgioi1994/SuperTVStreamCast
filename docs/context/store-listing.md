@@ -1,0 +1,41 @@
+# App Store listing and screenshots
+
+Done 11/10/2026 through the App Store Connect API (key `6KRC835HA5`; app `6821385537`, version 1.0 `PREPARE_FOR_SUBMISSION`).
+
+## Metadata (`store-assets/app-store/metadata.json`)
+
+- Locales: en-US (primary), vi, es-MX, pt-BR, fr-FR, de-DE, ja, ko, zh-Hans. Each has name, subtitle, keywords, promotional text and description; lengths are checked against Apple's limits (30 / 30 / 100 / 170 / 4000).
+- Descriptions only claim what the code does: Samsung / LG / Sony / Google TV remote over Wi-Fi with on-TV pairing, IPTV sources (M3U link, file, Xtream, single stream), EPG with reminders, hidden channels, PiP / AirPlay, QR sharing, encrypted library, and system AirPlay mirroring *instructions*. Wake-on-LAN is left out (a physical iPhone needs Apple's multicast entitlement). Every locale says the app provides no content and is not affiliated with the TV makers, and carries the auto-renewal terms and the Terms / Privacy links.
+- Keywords avoid TV brand names (trademark rule 2.3.7); the brands appear in the description as compatibility.
+- App info: categories Utilities / Entertainment; privacy policy `https://mmtstudio.site/privacy`; support `https://mmtstudio.site/#contact`; marketing `https://mmtstudio.site/`; copyright "© 2026 Nguyen Dinh Gioi" (same as RetroOne).
+- Age rating questionnaire: everything none / false except `advertising`.
+- Price Free (USA base). Available in all territories except mainland China (an app there needs an ICP filing).
+- Review details: contact copied from RetroOne; notes explain no account, no bundled content, an Apple sample HLS stream to test the player, the local-network remote and that mirroring is the system's AirPlay.
+- In-app purchases: localized names/descriptions added for the same 9 locales (group "Super TV Cast Premium").
+
+Not settable by the API and still to do in the web UI: App Privacy (data collection labels — AdMob, Firebase Analytics/Crashlytics, Qonversion), the content-rights question, and attaching a build. The three IAPs stay `MISSING_METADATA` until each has a review screenshot.
+
+## Screenshots ("Day & Night", option C)
+
+7 per locale for iPhone 6.9" (`APP_IPHONE_67`, 1320×2868) and iPad 13" (`APP_IPAD_PRO_3GEN_129`, 2064×2752), each showing the app in **both themes**: sports & movies, remote, TV guide grid, IPTV library, home, player, mirror. Concepts A/B/C were drawn by Codex first (`design/screenshots/concepts-v5/`); C was chosen.
+
+1. **Real UI capture.** Debug binaries accept `-StoreShot <scene> -StoreShotTheme <light|dark> [-StoreShotBrand <SAMSUNG|LG|SONY|GOOGLE>] -StoreShotAssets <url>` (`ui/storeshot/StoreShot.kt`, read in iOS `MainViewController`; `Platform.isDebugBinary` keeps it out of release). Scenes: HOME, REMOTE, IPTV, CHANNELS, GUIDE, PLAYER, MIRROR, SETTINGS, PAYWALL, SPORTS (player on the live sports channel) and MOVIES (poster grid). The scene is the real `TvScaffold` fed with fixed sample state: a connected TV of the chosen brand, a demo playlist with 11 channels and 9 movies, fictional fixtures ("Red Lions vs Blue Hawks") and premieres in the guide with reminders set, and the player. The football frame, channel logos, posters and the player videos (HLS clips made with ffmpeg from stills) are GPT-generated with plain kits and no club, league, broadcaster or studio marks; they are served from the Mac during capture and none of it ships. Captured with `xcrun simctl io screenshot` on the iPhone 18 Pro Max and iPad Pro 13" (M5) simulators, `-AppleLanguages` per locale, status bar time set to the capture time so it matches the guide's now line.
+2. **Art** (`store-assets/app-store/art/`): `bg_c1…7` (+ `_ipad`) sunset-to-night backgrounds and transparent `fg_*` 3D objects (ball, posters, bell, remote, popcorn, play tiles) that overlap the devices; generated with Codex CLI (GPT image tool), no text.
+3. **Composition**: `store-assets/app-store/build_screenshots.py <raw> [<out>] [--device] [--locale] [--only]` places two tilted devices (light and dark, silver vs graphite frame) or one device split diagonally light/dark on the background, adds the breakout objects and the localized headline and subtitle from `captions.json` (SF Rounded / Hiragino / Apple SD Gothic Neo). The Dynamic Island is drawn on every phone because simulator captures include it only sometimes. Output in `store-assets/app-store/screenshots/<device>/<locale>/`.
+
+The sample content in the captures is illustrative and fictional; the remote scene shows the connected state the app reaches after a real handshake. The remote caption names only the four brands the app supports.
+
+## iPad layout
+
+Found while capturing: on iPad every tab stretched the phone layout across the full width. `TvScaffold` now keeps pages and the dock at most `TvDimens.ContentMaxWidth` (720 dp) wide and centered; the full-screen player still uses the whole width. The language picker and onboarding columns use the same limit; the paywall already capped its content at 800 dp.
+
+## Google Play (Android)
+
+Prepared 11/10/2026. Store listings and screenshots uploaded 12/10/2026 (see Screenshots below); app bundle not uploaded yet.
+
+- **Signing**: `androidApp/build.gradle.kts` reads `keystore.properties` at the repo root (gitignored, with `upload-keystore.jks`, alias `upload`). Without the file the release build is unsigned. Backup copy in `~/Documents/keystore-backup/SuperTVStreamCast/`. Upload key SHA-1 `F4:83:BF:58:70:0D:58:60:96:E6:61:1C:D4:AE:9D:AF:84:7B:A2:CC`. Use Play App Signing; this is only the upload key.
+- **Build**: `./gradlew :androidApp:bundleRelease` → `androidApp/build/outputs/bundle/release/androidApp-release.aab` (versionCode 1, versionName 1.0, target/compile SDK 37, native symbol table embedded). R8 is off (`isMinifyEnabled = false`): no keep rules have been verified for Ktor/serialization/Koin/Qonversion yet.
+- **Listing**: `store-assets/google-play/listing.json` — title / short / full description for en-US, vi-VN, es-419, pt-BR, fr-FR, de-DE, ja-JP, ko-KR, zh-CN, written for Android (Chromecast/DLNA casting, Cast settings shortcut, Google Play subscription wording; no AirPlay). Category Tools. `icon-512.png`, `feature-graphic-1024x500.png` (bg_c2 + icon + remote/popcorn art, no text).
+- **Products**: Play ids match iOS — subscriptions `com.tuntech.supertvstreamcast.monthly` (base plan `monthly`, 3-day free trial offer) and `.yearly` (base plan `yearly`), one-time `.lifetime`. Qonversion products monthly/yearly/lifetime already carry these `google_product_id` / `google_base_plan_id` values.
+- **Screenshots** (12/10/2026, uploaded through the Android Publisher API with the `play-publisher@word-game-48bc3` service account, "Manage store presence"): same "Day & Night" layout as iOS, 7 per locale for phone (1440×2560) and tablet (1920×2560, uploaded as both 7" and 10"); Play rejects images longer than 2:1, hence 9:16 / 3:4 canvases. Captured on Android 16 emulators (Pixel 9 1080×2424, Pixel Tablet set to portrait 1600×2560) with the debug build opened by `adb shell am start -n com.tuntech.supertvstreamcast/.MainActivity --es StoreShot <SCENE> --es StoreShotTheme <light|dark> [--es StoreShotBrand LG] --es StoreShotAssets http://127.0.0.1:8765` (`MainActivity` reads the extras only when the app is debuggable), `adb reverse tcp:8765`, per-app locale via `cmd locale set-app-locales`, SystemUI demo mode for the status bar. `store-assets/google-play/build_screenshots.py` reuses the App Store composer with Android frames (punch-hole camera) and Android captions for the player (PiP & Chromecast) and Cast tab (Chromecast & DLNA). `upload_screenshots.py` replaces phone / 7" / 10" screenshots in one edit and creates a missing locale listing from `listing.json`; Play locales en-US, vi, es-419, pt-BR, fr-FR, de-DE, ja-JP, ko-KR, zh-CN. The demo assets (logos, posters, HLS clips) are the same GPT images, rebuilt from `~/.codex/generated_images`; none ships. StoreShot passes a share action on Android so the Cast tab shows the Android mirroring steps, as the real app does.
+- Merged manifest: no foreground service type is declared, so no FGS declaration is needed; AD_ID permission comes from AdMob (declare "Advertising ID: yes").

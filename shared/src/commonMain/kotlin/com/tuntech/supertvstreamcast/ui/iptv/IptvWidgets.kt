@@ -1,5 +1,6 @@
 package com.tuntech.supertvstreamcast.ui.iptv
 
+import com.tuntech.supertvstreamcast.analytics.ClickEvent
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
@@ -118,8 +119,7 @@ class ChannelMenu(val hidden: Boolean = false, val onHide: (() -> Unit)? = null,
 
 @Composable internal fun ChannelCard(channel: Channel, favorite: Boolean, programmes: List<Programme>, now: Long, onFavorite: () -> Unit, onPlay: () -> Unit,
     progress: Float? = null, playing: Boolean = false, menu: ChannelMenu? = null) {
-    Card(onClick = onPlay, shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = TvColors.Surface),
-        border = BorderStroke(1.dp, if (playing) TvColors.Cyan.copy(alpha = 0.7f) else TvColors.Outline.copy(alpha = 0.65f))) {
+    SurfaceCard(onClick = onPlay, border = if (playing) TvColors.Cyan.copy(alpha = 0.7f) else TvColors.Outline.copy(alpha = 0.7f)) {
         Row(Modifier.fillMaxWidth().padding(start = 14.dp, top = 12.dp, bottom = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Logo(channel.logo, Modifier.size(46.dp).clip(RoundedCornerShape(14.dp)))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -142,7 +142,7 @@ class ChannelMenu(val hidden: Boolean = false, val onHide: (() -> Unit)? = null,
     var open by remember { mutableStateOf(false) }
     val label = stringResource(Res.string.iptv_more)
     Box {
-        IconButton(onClick = { open = true }, modifier = Modifier.size(44.dp).semantics { contentDescription = label }) { GlyphIcon(Glyph.MENU, Modifier.size(18.dp), TvColors.Muted) }
+        IconButton(onClick = { ClickEvent.log("iptv_channel_menu"); open = true }, modifier = Modifier.size(44.dp).semantics { contentDescription = label }) { GlyphIcon(Glyph.MENU, Modifier.size(18.dp), TvColors.Muted) }
         DropdownMenu(open, { open = false }, containerColor = TvColors.Raised) {
             menu.onProgrammes?.let { action -> DropdownMenuItem({ Text(stringResource(Res.string.iptv_programmes)) }, { open = false; action() }) }
             menu.onHide?.let { action -> DropdownMenuItem({ Text(stringResource(if (menu.hidden) Res.string.iptv_unhide else Res.string.iptv_hide)) }, { open = false; action() }) }

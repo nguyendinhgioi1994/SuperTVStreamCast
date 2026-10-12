@@ -134,7 +134,9 @@ class GoogleTvTest {
         val session = adapter.connect("192.168.1.30", code)
         assertEquals("Google Chromecast", session.device.name)
         assertEquals(TvBrand.GOOGLE, session.device.brand)
-        assertFalse(session.capabilities.text || session.capabilities.apps)
+        assertFalse(session.capabilities.text)
+        // The TV offered the app-link feature (512 in 611), so launch shortcuts are available.
+        assertTrue(session.capabilities.apps)
         assertTrue(opened[0].closed)
         assertEquals(sha256(TV).toHex(), secrets.get("google.cert.192.168.1.30"))
         val remote = opened[1]
@@ -145,6 +147,9 @@ class GoogleTvTest {
         assertEquals(GoogleTvProtocol.pong(42).toHex(), remote.sent.receive().toHex())
         adapter.send(RemoteKey.VOLUME_UP)
         assertEquals(GoogleTvProtocol.key(RemoteKey.VOLUME_UP).toHex(), remote.sent.receive().toHex())
+        val youtube = adapter.apps().first()
+        adapter.launch(youtube)
+        assertEquals(GoogleTvProtocol.appLink(youtube.id).toHex(), remote.sent.receive().toHex())
         adapter.disconnect()
         assertTrue(remote.closed)
         assertFailsWith<IllegalStateException> { adapter.send(RemoteKey.OK) }
@@ -154,6 +159,14 @@ class GoogleTvTest {
         again.connect("192.168.1.30", "")
         assertEquals(GoogleTvProtocol.REMOTE_PORT, opened.last().port)
         again.disconnect()
+    }
+    @Test fun appLinkMessageAndFeatureGate() {
+        val fields = parseProto(GoogleTvProtocol.appLink("market://launch?id=org.xbmc.kodi"))
+        assertEquals("market://launch?id=org.xbmc.kodi", fields.message(90)!!.string(1))
+        assertTrue(GoogleTvProtocol.capabilities(1 or 2 or 512).apps)
+        assertFalse(GoogleTvProtocol.capabilities(1 or 2 or 32 or 64).apps)
+        assertTrue(GoogleTvProtocol.shortcuts.all { it.id.startsWith("https://") || it.id.startsWith("market://launch?id=") })
+        assertEquals(GoogleTvProtocol.shortcuts.size, GoogleTvProtocol.shortcuts.map { it.id }.toSet().size)
     }
     @Test fun changedTvCertificateIsNotTrustedAndPairsAgain() = runTest {
         val opened = mutableListOf<FakeTls>()

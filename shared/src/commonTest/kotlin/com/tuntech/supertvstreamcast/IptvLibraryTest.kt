@@ -134,8 +134,8 @@ class IptvLibraryTest {
         val request=ImportRequest("My list & more","https://e.com/get.php?username=a%20b&password=c%2Fd&type=m3u_plus")
         assertEquals(request,parseImportLink(buildImportLink(request.name,request.url)))
         assertEquals(ImportRequest("","https://e.com/list.m3u"),parseImportLink(" https://e.com/list.m3u "))
-        assertEquals("https://e.com/l.m3u",parseImportLink("tvspace://import-playlist?url=https%3A%2F%2Fe.com%2Fl.m3u")?.url)
-        listOf("tvspace://import-playlist?name=x","tvspace://import-playlist?url=file%3A%2F%2F%2Fa","tvspace://other?url=https%3A%2F%2Fe.com","iptv://x","").forEach {
+        assertEquals("https://e.com/l.m3u",parseImportLink("supertvcast://import-playlist?url=https%3A%2F%2Fe.com%2Fl.m3u")?.url)
+        listOf("supertvcast://import-playlist?name=x","supertvcast://import-playlist?url=file%3A%2F%2F%2Fa","supertvcast://other?url=https%3A%2F%2Fe.com","iptv://x","").forEach {
             assertNull(parseImportLink(it),it)
         }
     }

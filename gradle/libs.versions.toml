@@ -98,6 +98,8 @@ ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
 ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
+# Raw TCP for the cast media server (serves picked files to the TV).
+ktor-network = { module = "io.ktor:ktor-network", version.ref = "ktor" }
 
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "android-firebase" }
 gitlive-firebase-config = { module = "dev.gitlive:firebase-config", version.ref = "gitlive-firebase" }

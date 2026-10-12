@@ -121,6 +121,14 @@ class AppState(
         replace(Screen.Onboarding)
     }
 
+    fun replaceToLanguage() {
+        replace(Screen.Language(isInitial = true))
+    }
+
+    fun navigateToLanguage() {
+        navigate(Screen.Language(isInitial = false))
+    }
+
     fun navigateToPaywall(isInitial: Boolean = true, source: String) {
         // Keep at most one paywall on the stack — re-opening it from a deeper screen
         // otherwise stacks a second copy that the user has to dismiss twice.

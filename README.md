@@ -1,4 +1,4 @@
-# TV Space · SuperTVStreamCast
+# Super TV Cast · SuperTVStreamCast
 
 Kotlin Multiplatform app for Android and iOS: television controls, system screen sharing and user-provided IPTV playlists.
 

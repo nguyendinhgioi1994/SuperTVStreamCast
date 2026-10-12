@@ -56,11 +56,12 @@ fun createAppPreferences(context: android.content.Context): AppPreferences {
  */
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable actual fun StreamPlayer(url: String,userAgent: String,referer: String,modifier: Modifier,startMs: Long,controls: Boolean,fill: Boolean,
-    onProgress: (Long,Long)->Unit,onEnded: ()->Unit,onError: ()->Unit) {
+    onProgress: (Long,Long)->Unit,onEnded: ()->Unit,onError: ()->Unit,onStarted: ()->Unit) {
     val context=LocalContext.current
     val report by rememberUpdatedState(onError)
     val progress by rememberUpdatedState(onProgress)
     val ended by rememberUpdatedState(onEnded)
+    val started by rememberUpdatedState(onStarted)
     val players=remember(url,userAgent,referer) {
         val http=DefaultHttpDataSource.Factory().setAllowCrossProtocolRedirects(true).setConnectTimeoutMs(15_000).setReadTimeoutMs(20_000)
         if(userAgent.isNotEmpty()) http.setUserAgent(userAgent)
@@ -82,6 +83,10 @@ fun createAppPreferences(context: android.content.Context): AppPreferences {
                 addListener(object: Player.Listener {
                     var triedHls=hls
                     var retried=false
+                    var playing=false
+                    override fun onIsPlayingChanged(isPlaying: Boolean) {
+                        if(isPlaying&&!playing) {playing=true;started()}
+                    }
                     override fun onPlaybackStateChanged(state: Int) {
                         if(state==Player.STATE_READY) retried=false else if(state==Player.STATE_ENDED) ended()
                     }

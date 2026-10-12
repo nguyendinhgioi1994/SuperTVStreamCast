@@ -4,6 +4,8 @@ import com.tuntech.supertvstreamcast.domain.*
 
 /** Callbacks from the IPTV screens to [IptvViewModel]; screens keep only local form and filter state. */
 class IptvActions(
+    /** Opens the paywall from the IPTV header; hidden by IapActiveBox once the user is premium. */
+    val premium: () -> Unit = {},
     val back: () -> Unit = {}, val clearError: () -> Unit = {}, val clearNotice: () -> Unit = {}, val cancelImport: () -> Unit = {},
     val open: (String) -> Unit = {}, val refresh: (String) -> Unit = {}, val rename: (String, String) -> Unit = { _, _ -> },
     val refreshEvery: (String, Int) -> Unit = { _, _ -> }, val delete: (String) -> Unit = {}, val share: (IptvSource) -> Unit = {},
@@ -25,4 +27,6 @@ class IptvActions(
     /** Channel, programme and minutes before its start. */
     val remind: (Channel, Programme, Int) -> Unit = { _, _, _ -> }, val unremind: (Int) -> Unit = {},
     val progress: (String, Long, Long) -> Unit = { _, _, _ -> }, val ended: () -> Unit = {}, val playerError: () -> Unit = {},
+    /** The native player is really playing this URL. */
+    val started: (String) -> Unit = {},
 )

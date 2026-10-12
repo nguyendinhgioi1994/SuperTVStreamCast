@@ -1,5 +1,6 @@
 package com.tuntech.supertvstreamcast.ui.iptv
 
+import com.tuntech.supertvstreamcast.analytics.ClickEvent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -44,7 +45,8 @@ import shared.resources.*
             key(channel.url, retry) {
                 val start = remember { if (retry == 0) current.player?.startMs ?: 0 else resumePosition(current.entry(channel.url)) }
                 StreamPlayer(channel.url, channel.userAgent, channel.referer, modifier, start, controls, crop,
-                    onProgress = { position, duration -> callbacks.progress(channel.url, position, duration) }, onEnded = { callbacks.ended() }, onError = { callbacks.playerError() })
+                    onProgress = { position, duration -> callbacks.progress(channel.url, position, duration) }, onEnded = { callbacks.ended() }, onError = { callbacks.playerError() },
+                    onStarted = { callbacks.started(channel.url) })
             }
         }
     }
@@ -61,6 +63,7 @@ import shared.resources.*
     val pip = rememberPictureInPicture()
     var fullscreen by remember { mutableStateOf(false) }
     val leaveFullscreen: () -> Unit = { fullscreen = false; requestFullscreen?.invoke(false) }
+    val exitFullscreenTap: () -> Unit = { ClickEvent.log("iptv_player_fullscreen_exit"); leaveFullscreen() }
     // Back leaves full screen before it minimizes the player.
     BackHandler(enabled = fullscreen, onBack = leaveFullscreen)
     BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -69,7 +72,7 @@ import shared.resources.*
         if (pip?.active == true) { video(Modifier.fillMaxSize().background(Color.Black), false); return@BoxWithConstraints }
         if (maxWidth > maxHeight) {
             video(Modifier.fillMaxSize().background(Color.Black), true)
-            if (fullscreen) RoundAction(stringResource(Res.string.iptv_fullscreen_exit), Glyph.CLOSE, Modifier.align(Alignment.TopStart).padding(12.dp), onClick = leaveFullscreen)
+            if (fullscreen) RoundAction(stringResource(Res.string.iptv_fullscreen_exit), Glyph.CLOSE, Modifier.align(Alignment.TopStart).padding(12.dp), onClick = exitFullscreenTap)
             return@BoxWithConstraints
         }
         val now = rememberEpochSeconds()
@@ -99,8 +102,8 @@ import shared.resources.*
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (programmes.isNotEmpty()) Chip(stringResource(Res.string.iptv_programmes), false) { actions.openProgrammes(channel) }
                 Chip(stringResource(Res.string.iptv_fill_screen), fill, onFill)
-                if (pip != null) Chip(stringResource(Res.string.iptv_pip), false, pip.enter)
-                if (requestFullscreen != null) Chip(stringResource(Res.string.iptv_fullscreen), false) { fullscreen = true; requestFullscreen(true) }
+                if (pip != null) Chip(stringResource(Res.string.iptv_pip), false) { ClickEvent.log("iptv_player_pip"); pip.enter() }
+                if (requestFullscreen != null) Chip(stringResource(Res.string.iptv_fullscreen), false) { ClickEvent.log("iptv_player_fullscreen"); fullscreen = true; requestFullscreen(true) }
             }
             if (zapping) {
                 val index = remember(player.queue, channel.url) { player.queue.indexOfFirst { it.url == channel.url }.coerceAtLeast(0) }
@@ -138,7 +141,7 @@ import shared.resources.*
 @Composable internal fun PasscodeScreen(flow: PasscodeFlow, actions: IptvActions) {
     var pin by remember(flow) { mutableStateOf("") }
     LaunchedEffect(pin) { if (pin.length == PasscodeFlow.LENGTH) { delay(150); actions.submitPasscode(pin) } }
-    Column(Modifier.fillMaxSize().padding(horizontal = TvDimens.Space).padding(top = 12.dp, bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(18.dp),
+    Column(Modifier.fillMaxSize().padding(horizontal = TvDimens.Space).padding(top = 12.dp, bottom = 20.dp + LocalDockInset.current), verticalArrangement = Arrangement.spacedBy(18.dp),
         horizontalAlignment = Alignment.CenterHorizontally) {
         TopRow(stringResource(if (flow.purpose == PasscodePurpose.CHANGE) Res.string.iptv_passcode_change else Res.string.iptv_hidden), onBack = actions.back)
         Spacer(Modifier.weight(1f))

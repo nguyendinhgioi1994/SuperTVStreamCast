@@ -7,9 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		207E5CF47F2A035E7545F2BA = {
+		6D4DBA1813C7C329EBDD655C = {
 			isa = PBXBuildFile;
-			productRef = D42E8E75D9CE2C05D152654F;
+			productRef = 0DF2000EDD7C5A6587F747AC;
 		};
 /* End PBXBuildFile section */
 
@@ -39,19 +39,11 @@
 			exceptions = (
 				64EC280E59FB4D9EC1BB23E0,
 			);
-			explicitFileTypes = {
-			};
-			explicitFolders = (
-			);
 			path = iosApp;
 			sourceTree = "<group>";
 		};
 		97986D20ECA313F48C057D27 = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			explicitFileTypes = {
-			};
-			explicitFolders = (
-			);
 			path = Configuration;
 			sourceTree = "<group>";
 		};
@@ -62,7 +54,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				207E5CF47F2A035E7545F2BA,
+				6D4DBA1813C7C329EBDD655C,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -107,7 +99,7 @@
 			);
 			name = iosApp;
 			packageProductDependencies = (
-				D42E8E75D9CE2C05D152654F,
+				0DF2000EDD7C5A6587F747AC,
 			);
 			productName = iosApp;
 			productReference = CCFA2B7DD153BFFD0DE2E97F;
@@ -138,7 +130,7 @@
 			mainGroup = BBBA92869D81217967DD2EB5;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				44EC41544D11364F0B9265C0,
+				0D81737FD6519E9EFAC88163,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 723CA323450551215AF52F5D;
@@ -267,15 +259,19 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
-				DEVELOPMENT_TEAM = "${TEAM_ID}";
+				DEVELOPMENT_TEAM = YK7C935Z5K;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Super TV Cast";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Scan a QR code to add a playlist.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Connect to your TV on your local Wi-Fi network.";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "This identifier will be used to deliver personalized ads to you.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -353,15 +349,19 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
-				DEVELOPMENT_TEAM = "${TEAM_ID}";
+				DEVELOPMENT_TEAM = YK7C935Z5K;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Super TV Cast";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Scan a QR code to add a playlist.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Connect to your TV on your local Wi-Fi network.";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "This identifier will be used to deliver personalized ads to you.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -396,14 +396,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		44EC41544D11364F0B9265C0 = {
+		0D81737FD6519E9EFAC88163 = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = KotlinMultiplatformLinkedPackage;
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		D42E8E75D9CE2C05D152654F = {
+		0DF2000EDD7C5A6587F747AC = {
 			isa = XCSwiftPackageProductDependency;
 			productName = KotlinMultiplatformLinkedPackage;
 		};

@@ -1,8 +1,8 @@
 # Midnight Cinema
 
-TV Space combines a navy cinema palette, luminous cyan controls and coral highlights. Source tokens are in `shared/src/commonMain/kotlin/com/tuntech/supertvstreamcast/theme/TvTheme.kt`.
+Super TV Cast combines a navy cinema palette, luminous cyan controls and coral highlights. Source tokens are in `shared/src/commonMain/kotlin/com/tuntech/supertvstreamcast/theme/TvTheme.kt`.
 
-Use token colors, Material 3 typography, rounded surfaces and one primary CTA per task. Keep meaningful images and controls accessible; decorative art has a null description. Text belongs in Compose string resources, never in artwork. Icon source is `design/app_icon.svg`; the hero is original AI-generated artwork converted to WebP under `composeResources/drawable/art_cinema.webp`.
+Use token colors, Material 3 typography, rounded surfaces and one primary CTA per task. Keep meaningful images and controls accessible; decorative art has a null description. Text belongs in Compose string resources, never in artwork. Icon source is the AI-generated raster `design/app_icon_source.png` (TV with play, landscape phone, remote on an amber→coral gradient), extended and exported to Android/iOS; the status-bar and themed-icon glyph is a vector TV with a play cut-out; the hero is original AI-generated artwork converted to WebP under `composeResources/drawable/art_cinema.webp`.
 
 The first-use flow takes three screens: product value, TV brand, primary goal. Home exposes connection status ahead of remote controls. Unsupported brand control remains disabled with an honest development message. Native screen sharing never claims an active session unless the system/receiver can report one.
 

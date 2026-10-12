@@ -77,6 +77,7 @@ kotlin {
             // Local programme times for the TV guide (:common's DateUtil takes kotlinx-datetime types).
             implementation(libs.kotlinx.datetime)
             implementation(libs.ktor.client.core)
+            implementation(libs.ktor.network)
 
             implementation(project.dependencies.platform(libs.koin.bom))
             implementation(libs.koin.core)
@@ -103,6 +104,8 @@ kotlin {
             // Channel logos from playlist URLs.
             implementation(libs.coil.network.ktor3)
             implementation(libs.filekit.core)
+            // Photo / video / audio pickers for casting.
+            implementation(libs.filekit.dialogs.compose)
             // IPTV: QR code of a share link, and scanning one with the camera.
             implementation(libs.qrose)
             implementation(libs.camerak)

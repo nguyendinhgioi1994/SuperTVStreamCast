@@ -70,12 +70,41 @@ internal fun castAvailable(context: Context): Boolean {
         ReminderScheduler(schedule = { reminder, title, body ->
             val allowed = Build.VERSION.SDK_INT < 33 || context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED ||
                 CompletableDeferred<Boolean>().also { pending = it; launcher.launch(Manifest.permission.POST_NOTIFICATIONS) }.await()
-            if (allowed) {
-                // Inexact on purpose: exact alarms need a restricted permission, and a minute either way is fine here.
-                context.getSystemService(AlarmManager::class.java).setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, reminder.at * 1000, reminderIntent(context, reminder.id, title, body))
-            }
+            if (allowed) ReminderAlarms.arm(context, reminder.id, reminder.at, title, body)
             allowed
-        }, cancel = { id -> context.getSystemService(AlarmManager::class.java).cancel(reminderIntent(context, id, "", "")) })
+        }, cancel = { id -> ReminderAlarms.disarm(context, id) })
+    }
+}
+
+/**
+ * Alarms do not survive a device restart, so every armed reminder is also kept in a small private
+ * preferences file (id → time, programme title, notification text) and armed again by
+ * [ReminderReceiver] after boot or an app update. An entry is dropped when it fires or is cancelled.
+ */
+internal object ReminderAlarms {
+    private const val PREFS = "tv_guide_reminders"
+    private const val SEPARATOR = '\u0000'
+    private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+    fun arm(context: Context, id: Int, at: Long, title: String, body: String) {
+        // Inexact on purpose: exact alarms need a restricted permission, and a minute either way is fine here.
+        context.getSystemService(AlarmManager::class.java).setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at * 1000, reminderIntent(context, id, title, body))
+        prefs(context).edit().putString(id.toString(), listOf(at.toString(), title, body).joinToString(SEPARATOR.toString())).apply()
+    }
+    fun disarm(context: Context, id: Int) {
+        context.getSystemService(AlarmManager::class.java).cancel(reminderIntent(context, id, "", ""))
+        forget(context, id)
+    }
+    fun forget(context: Context, id: Int) = prefs(context).edit().remove(id.toString()).apply()
+    /** Arms the stored reminders again; ones whose time passed while the device was off are dropped. */
+    fun rearm(context: Context, nowSeconds: Long = System.currentTimeMillis() / 1000) {
+        for ((key, value) in prefs(context).all) {
+            val id = key.toIntOrNull()
+            val parts = (value as? String)?.split(SEPARATOR).orEmpty()
+            val at = parts.getOrNull(0)?.toLongOrNull()
+            if (id == null || parts.size != 3 || at == null || at <= nowSeconds) { prefs(context).edit().remove(key).apply(); continue }
+            arm(context, id, at, parts[1], parts[2])
+        }
     }
 }
 private fun reminderIntent(context: Context, id: Int, title: String, body: String): PendingIntent =
@@ -86,15 +115,20 @@ private const val EXTRA_TITLE = "title"
 private const val EXTRA_BODY = "body"
 private const val CHANNEL = "tv_guide"
 
-/** Posts the reminder when its alarm fires; tapping it opens the app. Declared in the app manifest. */
+/** Posts the reminder when its alarm fires (tapping it opens the app), and re-arms stored reminders after boot or an update. Declared in the app manifest. */
 class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action == Intent.ACTION_BOOT_COMPLETED || intent.action == Intent.ACTION_MY_PACKAGE_REPLACED) {
+            ReminderAlarms.rearm(context)
+            return
+        }
+        ReminderAlarms.forget(context, intent.getIntExtra(EXTRA_ID, 0))
         val title = intent.getStringExtra(EXTRA_TITLE).orEmpty()
         if (title.isEmpty()) return
         val manager = context.getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(NotificationChannel(CHANNEL, context.applicationInfo.loadLabel(context.packageManager), NotificationManager.IMPORTANCE_DEFAULT))
         val open = context.packageManager.getLaunchIntentForPackage(context.packageName)?.let { PendingIntent.getActivity(context, 0, it, PendingIntent.FLAG_IMMUTABLE) }
-        val notification = NotificationCompat.Builder(context, CHANNEL).setSmallIcon(R.drawable.ic_stat_tv_guide)
+        val notification = NotificationCompat.Builder(context, CHANNEL).setSmallIcon(R.drawable.ic_stat_notification)
             .setContentTitle(title).setContentText(intent.getStringExtra(EXTRA_BODY).orEmpty()).setAutoCancel(true).setContentIntent(open).build()
         // Permission may have been withdrawn since the reminder was set.
         runCatching { manager.notify(intent.getIntExtra(EXTRA_ID, 0), notification) }

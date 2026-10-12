@@ -38,8 +38,8 @@ actual fun discoveryClient(): HttpClient = HttpClient(OkHttp) {
     followRedirects = false
     install(WebSockets)
     install(HttpTimeout) { connectTimeoutMillis = 1_500; requestTimeoutMillis = 2_500; socketTimeoutMillis = 2_000 }
-    // A scan probes ~250 hosts × 3 protocols; OkHttp's default 64-call limit would queue probes past their timeout.
-    engine { config { dispatcher(Dispatcher().apply { maxRequests = 192; maxRequestsPerHost = 4 }) } }
+    // A scan probes ~250 hosts × 5 HTTP protocols; OkHttp's default 64-call limit would queue probes past their timeout.
+    engine { config { dispatcher(Dispatcher().apply { maxRequests = 320; maxRequestsPerHost = 6 }) } }
 }
 actual fun localIpv4Address(): String? {
     val candidates = runCatching { NetworkInterface.getNetworkInterfaces().toList() }.getOrDefault(emptyList())

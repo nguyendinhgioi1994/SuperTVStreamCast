@@ -59,7 +59,7 @@ object SonyProtocol {
 
 /** Samsung Smart TV (Tizen) WebSocket remote. Pairing is accepted by the viewer on the TV screen. */
 object SamsungProtocol {
-    const val APP_NAME = "TV Space"
+    const val APP_NAME = "Super TV Cast"
     fun keyCode(key: RemoteKey): String = when (key) {
         RemoteKey.POWER -> "KEY_POWER"; RemoteKey.UP -> "KEY_UP"; RemoteKey.DOWN -> "KEY_DOWN"
         RemoteKey.LEFT -> "KEY_LEFT"; RemoteKey.RIGHT -> "KEY_RIGHT"; RemoteKey.OK -> "KEY_ENTER"

@@ -2,10 +2,13 @@ package com.tuntech.supertvstreamcast
 
 import com.tuntech.supertvstreamcast.data.*
 import com.tuntech.supertvstreamcast.domain.*
+import com.tuntech.supertvstreamcast.net.Datagram
+import com.tuntech.supertvstreamcast.net.LanBrowser
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.*
 import io.ktor.http.*
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 
@@ -139,5 +142,26 @@ class AdapterTest {
         assertEquals(listOf("192.168.0.3", "192.168.0.4", "192.168.0.5"), devices.map { it.host })
         assertEquals(3, found.size)
         assertTrue(discovery.scan("8.8.8.8").isEmpty())
+    }
+    @Test fun discoveryListsAnnouncedTvsOnceAndProbesOtherAnnouncements() = runTest {
+        val probed = mutableListOf<String>()
+        val http = HttpClient(MockEngine { request ->
+            if (request.url.port == 8001) probed += request.url.host
+            if (request.url.host == "10.0.0.8" && request.url.port == 8001) respond(samsungInfo, HttpStatusCode.OK)
+            else respond("", HttpStatusCode.NotFound)
+        })
+        val google = LanAnnouncement("192.168.0.20", LanServices.GOOGLE_TV_REMOTE, "Bedroom")
+        val ssdp = "HTTP/1.1 200 OK\r\nST: urn:dial-multiscreen-org:service:dial:1\r\nLOCATION: http://10.0.0.8:7678/dd.xml\r\n\r\n"
+        val browser = LanBrowser(
+            dnsSd = { flowOf(google, google, LanAnnouncement("8.8.4.4", LanServices.GOOGLE_TV_REMOTE, "Public")) },
+            multicast = { _, _, _ -> flowOf(Datagram("10.0.0.8", ssdp.encodeToByteArray()), Datagram("10.0.0.8", ssdp.encodeToByteArray())) },
+        )
+        val discovery = TvDiscovery(http, { _, _ -> error("refused") }, browser)
+        val devices = discovery.scan("192.168.0.2")
+        assertEquals(listOf(TvDevice(TvBrand.SAMSUNG, "10.0.0.8", "Living room", "QE55", "a0:b1:c2:d3:e4:f5"), TvDevice(TvBrand.GOOGLE, "192.168.0.20", "Bedroom")),
+            devices)
+        assertEquals(1, probed.count { it == "10.0.0.8" })
+        assertEquals(1, probed.count { it == "192.168.0.20" })
+        assertFalse("8.8.4.4" in probed)
     }
 }

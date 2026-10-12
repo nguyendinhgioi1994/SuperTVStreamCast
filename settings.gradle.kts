@@ -1,5 +1,6 @@
 rootProject.name = "SuperTVStreamCast"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
     // Precompiled script plugins shared via the tuntech_common_kmp submodule (validate-remote-config,

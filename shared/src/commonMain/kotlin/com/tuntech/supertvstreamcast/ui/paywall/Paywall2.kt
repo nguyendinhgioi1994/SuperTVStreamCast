@@ -36,6 +36,7 @@ fun Paywall2Screen(
 
     PaywallScaffold(
         variant = PaywallVariant.Two,
+        source = source,
         isLoading = isLoading,
         products = viewModel.products,
         selectedProduct = selectedProduct,

@@ -1,5 +1,6 @@
 package com.tuntech.supertvstreamcast.ui.iptv
 
+import com.tuntech.supertvstreamcast.analytics.ClickEvent
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
@@ -42,26 +43,26 @@ internal enum class IptvSheet { SOURCES, URL, XTREAM, STREAM, GUIDE, HELP }
 /** Ways to add channels; `null` means a system picker opened and the caller's dialog should close. */
 @Composable internal fun SourceChoices(state: IptvUiState, actions: IptvActions, onOpen: (IptvSheet?) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        SourceRow(Glyph.LINK, stringResource(Res.string.source_url), stringResource(Res.string.source_url_body), !state.busy) { onOpen(IptvSheet.URL) }
-        SourceRow(Glyph.LOCK, stringResource(Res.string.source_xtream), stringResource(Res.string.source_xtream_body), !state.busy) { onOpen(IptvSheet.XTREAM) }
-        SourceRow(Glyph.FILE, stringResource(Res.string.source_file), stringResource(Res.string.source_file_body), !state.busy) { onOpen(null); actions.pickPlaylistFile() }
-        SourceRow(Glyph.PLAY, stringResource(Res.string.source_stream), stringResource(Res.string.source_stream_body), !state.busy) { onOpen(IptvSheet.STREAM) }
-        SourceRow(Glyph.SEARCH, stringResource(Res.string.iptv_scan_qr), stringResource(Res.string.iptv_scan_qr_body), !state.busy) { onOpen(null); actions.openScanner() }
+        SourceRow(Glyph.LINK, Feature.IPTV, stringResource(Res.string.source_url), stringResource(Res.string.source_url_body), !state.busy) { onOpen(IptvSheet.URL) }
+        SourceRow(Glyph.LOCK, Feature.MIRROR, stringResource(Res.string.source_xtream), stringResource(Res.string.source_xtream_body), !state.busy) { onOpen(IptvSheet.XTREAM) }
+        SourceRow(Glyph.FILE, Feature.REMOTE, stringResource(Res.string.source_file), stringResource(Res.string.source_file_body), !state.busy) { onOpen(null); actions.pickPlaylistFile() }
+        SourceRow(Glyph.PLAY, Feature.HOME, stringResource(Res.string.source_stream), stringResource(Res.string.source_stream_body), !state.busy) { onOpen(IptvSheet.STREAM) }
+        SourceRow(Glyph.SEARCH, Feature.SETTINGS, stringResource(Res.string.iptv_scan_qr), stringResource(Res.string.iptv_scan_qr_body), !state.busy) { onOpen(null); actions.openScanner() }
     }
 }
-@Composable private fun SourceRow(glyph: Glyph, title: String, body: String, enabled: Boolean, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(TvColors.Raised).border(1.dp, TvColors.Outline, RoundedCornerShape(20.dp))
-        .clickable(enabled = enabled, role = Role.Button, onClick = onClick).heightIn(min = TvDimens.Touch).padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        val accent = if (enabled) TvColors.Coral else TvColors.Muted
-        Box(Modifier.size(42.dp).clip(RoundedCornerShape(14.dp)).background(accent.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
-            GlyphIcon(glyph, Modifier.size(20.dp), accent)
+/** Same gradient tile as Home's IPTV card, each source in its own feature colour. */
+@Composable private fun SourceRow(glyph: Glyph, feature: Feature, title: String, body: String, enabled: Boolean, onClick: () -> Unit) {
+    GradientCard(TvColors.featureGradient(feature), Modifier.fillMaxWidth(), enabled = enabled, onClick = onClick) {
+        Row(Modifier.fillMaxWidth().heightIn(min = TvDimens.Touch).padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(Modifier.size(42.dp).clip(RoundedCornerShape(14.dp)).background(TvColors.OnAccent.copy(alpha = 0.2f)), contentAlignment = Alignment.Center) {
+                GlyphIcon(glyph, Modifier.size(20.dp), TvColors.OnAccent)
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(title, style = MaterialTheme.typography.titleSmall, color = TvColors.OnAccent)
+                Text(body, style = MaterialTheme.typography.bodySmall, color = TvColors.OnAccent.copy(alpha = 0.88f))
+            }
+            ArrowChip()
         }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, color = if (enabled) TvColors.Text else TvColors.Muted)
-            Text(body, style = MaterialTheme.typography.bodySmall, color = TvColors.Muted)
-        }
-        GlyphIcon(Glyph.RIGHT, Modifier.size(18.dp), accent)
     }
 }
 @Composable internal fun IptvDialog(title: String, glyph: Glyph, confirm: String? = null, confirmEnabled: Boolean = true, onConfirm: () -> Unit = {},
@@ -202,9 +203,9 @@ internal enum class IptvSheet { SOURCES, URL, XTREAM, STREAM, GUIDE, HELP }
                 Text(stringResource(Res.string.iptv_refresh))
             }
         }
-        if (source.shareUrl != null) OutlinedButton(onClick = { if (source.type == SourceType.XTREAM) confirmShare = true else actions.share(source) },
+        if (source.shareUrl != null) OutlinedButton(onClick = { if (source.type == SourceType.XTREAM) { ClickEvent.log("iptv_source_share_ask", "type" to source.type); confirmShare = true } else actions.share(source) },
             shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(stringResource(Res.string.iptv_share)) }
-        if (source.shareUrl != null) OutlinedButton(onClick = { qr = true }, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+        if (source.shareUrl != null) OutlinedButton(onClick = { ClickEvent.log("iptv_source_qr", "type" to source.type); qr = true }, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
             Text(stringResource(Res.string.iptv_share_qr))
         }
         DialogStatus(state)

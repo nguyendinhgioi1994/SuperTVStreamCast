@@ -1,5 +1,6 @@
 package com.tuntech.supertvstreamcast.ui.iptv
 
+import com.tuntech.monetization.iap.IapActiveBox
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,6 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.tuntech.supertvstreamcast.analytics.ClickEvent
 import com.tuntech.supertvstreamcast.domain.*
 import com.tuntech.supertvstreamcast.theme.*
 import com.tuntech.supertvstreamcast.ui.*
@@ -31,13 +33,13 @@ import shared.resources.*
     var sheet by rememberSaveable { mutableStateOf<IptvSheet?>(null) }
     var seen by rememberSaveable { mutableStateOf(state.imported) }
     LaunchedEffect(state.imported) { if (state.imported != seen) { seen = state.imported; sheet = null } }
-    val open: (IptvSheet) -> Unit = { actions.clearError(); sheet = it }
+    val open: (IptvSheet) -> Unit = { ClickEvent.log("iptv_sheet_${it.name}"); actions.clearError(); sheet = it }
     val player = state.player
     var attempt by remember(player?.channel?.url) { mutableStateOf(0) }
     var fill by rememberSaveable { mutableStateOf(false) }
     val video = rememberVideo(state, actions, attempt, fill)
     Box(Modifier.fillMaxSize()) {
-        if (player != null && !player.minimized) IptvPlayer(state, player, actions, video, fill, { fill = !fill }) { attempt++ }
+        if (player != null && !player.minimized) IptvPlayer(state, player, actions, video, fill, { ClickEvent.log("iptv_player_fill", "on" to !fill); fill = !fill }) { ClickEvent.log("iptv_player_retry"); attempt++ }
         else {
             when (val screen = state.screen) {
                 IptvScreen.Hub -> IptvHub(state, actions, sheet == null, open)
@@ -49,10 +51,10 @@ import shared.resources.*
                 IptvScreen.Guide -> GuideScreen(state, actions) { open(IptvSheet.GUIDE) }
                 IptvScreen.Scanner -> ScannerScreen(actions)
             }
-            if (player != null) MiniPlayer(player, actions, video, Modifier.align(Alignment.BottomEnd).padding(12.dp))
+            if (player != null) MiniPlayer(player, actions, video, Modifier.align(Alignment.BottomEnd).padding(bottom = LocalDockInset.current).padding(12.dp))
         }
     }
-    IptvSheets(sheet, state, actions) { sheet = it }
+    IptvSheets(sheet, state, actions) { next -> next?.let { ClickEvent.log("iptv_sheet_${it.name}") }; sheet = next }
     state.pendingImport?.let { request ->
         AlertDialog(onDismissRequest = actions.dismissImport, shape = RoundedCornerShape(30.dp), containerColor = TvColors.Surface,
             title = { Text(stringResource(Res.string.iptv_import_title), style = MaterialTheme.typography.headlineSmall) },
@@ -69,7 +71,7 @@ import shared.resources.*
     }
 }
 
-private val ScreenPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 20.dp)
+private val ScreenPadding @Composable get() = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 20.dp + LocalDockInset.current)
 
 @Composable private fun IptvHub(state: IptvUiState, actions: IptvActions, showStatus: Boolean, open: (IptvSheet) -> Unit) {
     var details by rememberSaveable { mutableStateOf<String?>(null) }
@@ -83,6 +85,7 @@ private val ScreenPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.d
                     Text(stringResource(Res.string.iptv), style = MaterialTheme.typography.labelSmall, color = TvColors.Coral)
                     Text(stringResource(Res.string.library), style = MaterialTheme.typography.headlineLarge)
                 }
+                IapActiveBox { PremiumAction(actions.premium) }
                 if (state.hidden.isNotEmpty() || state.passcodeSet) RoundAction(stringResource(Res.string.iptv_hidden), Glyph.LOCK, accent = TvColors.Violet) { actions.openLibrary(LibraryList.HIDDEN) }
                 RoundAction(stringResource(Res.string.iptv_help), Glyph.HELP, accent = TvColors.Cyan) { open(IptvSheet.HELP) }
                 RoundAction(stringResource(Res.string.add_playlist), Glyph.ADD, enabled = !state.busy, accent = TvColors.Coral) { open(IptvSheet.SOURCES) }
@@ -116,7 +119,7 @@ private val ScreenPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.d
             }
             item { SectionHeader(stringResource(Res.string.iptv_sources_title), state.sources.size, stringResource(Res.string.iptv_add_source)) { open(IptvSheet.SOURCES) } }
             items(state.sources, key = { it.id }) { source ->
-                SourceCard(source, !state.busy, { actions.open(source.id) }, { actions.refresh(source.id) }, { details = source.id }, { deleting = source.id })
+                SourceCard(source, !state.busy, { actions.open(source.id) }, { actions.refresh(source.id) }, { ClickEvent.log("iptv_source_details", "type" to source.type); details = source.id }, { ClickEvent.log("iptv_source_delete_ask", "type" to source.type); deleting = source.id })
             }
             item { Text(stringResource(Res.string.iptv_saved_note), style = MaterialTheme.typography.bodySmall, color = TvColors.Muted) }
         }
@@ -139,8 +142,7 @@ private val ScreenPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.d
 }
 @Composable private fun SourceCard(source: IptvSource, enabled: Boolean, onOpen: () -> Unit, onRefresh: () -> Unit, onDetails: () -> Unit, onDelete: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
-    Card(onClick = onOpen, enabled = enabled, shape = RoundedCornerShape(20.dp), border = BorderStroke(1.dp, TvColors.Outline.copy(alpha = 0.65f)),
-        colors = CardDefaults.cardColors(containerColor = TvColors.Surface, disabledContainerColor = TvColors.Surface)) {
+    SurfaceCard(onClick = onOpen, enabled = enabled) {
         Row(Modifier.fillMaxWidth().padding(start = 14.dp, top = 12.dp, bottom = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Box(Modifier.size(46.dp).clip(RoundedCornerShape(14.dp)).background(TvColors.Coral.copy(alpha = 0.1f)), contentAlignment = Alignment.Center) {
                 GlyphIcon(source.type.glyph(), Modifier.size(20.dp), TvColors.Coral)
@@ -152,7 +154,7 @@ private val ScreenPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.d
             }
             val label = stringResource(Res.string.iptv_more)
             Box {
-                IconButton(onClick = { menu = true }, modifier = Modifier.size(48.dp).semantics { contentDescription = label }) { GlyphIcon(Glyph.MENU, Modifier.size(18.dp), TvColors.Muted) }
+                IconButton(onClick = { ClickEvent.log("iptv_source_menu"); menu = true }, modifier = Modifier.size(48.dp).semantics { contentDescription = label }) { GlyphIcon(Glyph.MENU, Modifier.size(18.dp), TvColors.Muted) }
                 DropdownMenu(menu, { menu = false }, containerColor = TvColors.Raised) {
                     if (source.refreshable) DropdownMenuItem({ Text(stringResource(Res.string.iptv_refresh)) }, { menu = false; onRefresh() }, enabled = enabled)
                     DropdownMenuItem({ Text(stringResource(Res.string.iptv_details)) }, { menu = false; onDetails() })
@@ -163,8 +165,7 @@ private val ScreenPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.d
     }
 }
 @Composable private fun HelpCard(onClick: () -> Unit) {
-    Card(onClick = onClick, shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = TvColors.Surface),
-        border = BorderStroke(1.dp, TvColors.Cyan.copy(alpha = 0.2f)), modifier = Modifier.fillMaxWidth()) {
+    SurfaceCard(Modifier.fillMaxWidth(), onClick = onClick) {
         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             GlyphIcon(Glyph.HELP, color = TvColors.Cyan)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -201,7 +202,7 @@ private fun LazyGridScope.wide(key: Any? = null, content: @Composable () -> Unit
         verticalArrangement = Arrangement.spacedBy(14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         wide {
             TopRow(source.title(), source.host, actions.back) {
-                RoundAction(stringResource(Res.string.iptv_details), Glyph.MENU) { details = true }
+                RoundAction(stringResource(Res.string.iptv_details), Glyph.MENU) { ClickEvent.log("iptv_source_details", "type" to source.type); details = true }
             }
         }
         state.notice?.let { wide("notice") { NoticeBanner(it, actions.clearNotice) } }
@@ -222,14 +223,14 @@ private fun LazyGridScope.wide(key: Any? = null, content: @Composable () -> Unit
             if (search.isBlank()) {
                 if (kinds.size > 1) wide {
                     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(TvColors.Surface).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        kinds.forEach { SegmentTab(stringResource(it.label()), kind == it, Modifier.weight(1f)) { tab = it; group = "" } }
+                        kinds.forEach { SegmentTab(stringResource(it.label()), kind == it, Modifier.weight(1f)) { ClickEvent.log("iptv_kind_${it.name}"); tab = it; group = "" } }
                     }
                 }
                 if (kind == ContentKind.LIVE) wide { GuideBanner(state) { if (state.guide.isEmpty()) open(IptvSheet.GUIDE) else actions.openGuide() } }
                 if (groups.isNotEmpty()) wide {
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        item { Chip(stringResource(Res.string.all_groups), selected.isEmpty()) { group = "" } }
-                        items(groups, key = { it }) { name -> Chip(name, selected == name) { group = name } }
+                        item { Chip(stringResource(Res.string.all_groups), selected.isEmpty()) { ClickEvent.log("iptv_group", "all" to true); group = "" } }
+                        items(groups, key = { it }) { name -> Chip(name, selected == name) { ClickEvent.log("iptv_group", "all" to false); group = name } }
                     }
                 }
             }
@@ -246,8 +247,9 @@ private fun LazyGridScope.wide(key: Any? = null, content: @Composable () -> Unit
 }
 @Composable private fun GuideBanner(state: IptvUiState, onClick: () -> Unit) {
     val loaded = state.guide.isNotEmpty()
-    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(TvColors.Surface).clickable(enabled = !state.busy, role = Role.Button, onClick = onClick)
-        .padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    val shape = RoundedCornerShape(TvDimens.RadiusLg)
+    Row(Modifier.fillMaxWidth().clip(shape).background(TvColors.SurfaceGradient).border(1.dp, TvColors.Outline.copy(alpha = 0.7f), shape)
+        .clickable(enabled = !state.busy, role = Role.Button, onClick = onClick).padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         GlyphIcon(Glyph.GUIDE, Modifier.size(20.dp), if (loaded) TvColors.Cyan else TvColors.Coral)
         Text(when {
             loaded -> pluralStringResource(Res.plurals.guide_loaded, state.guide.size, state.guide.size)
@@ -269,7 +271,7 @@ private fun LazyGridScope.wide(key: Any? = null, content: @Composable () -> Unit
     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(14.dp), contentPadding = ScreenPadding) {
         item {
             TopRow(stringResource(list.label()), pluralStringResource(Res.plurals.iptv_item_count, all.size, all.size), actions.back) {
-                if (all.isNotEmpty()) TextButton(onClick = { clearing = true }) { Text(stringResource(Res.string.iptv_clear_all)) }
+                if (all.isNotEmpty()) TextButton(onClick = { ClickEvent.log("iptv_library_clear_ask", "list" to list); clearing = true }) { Text(stringResource(Res.string.iptv_clear_all)) }
             }
         }
         state.notice?.let { item(key = "notice") { NoticeBanner(it, actions.clearNotice) } }
@@ -331,7 +333,7 @@ private fun LazyGridScope.wide(key: Any? = null, content: @Composable () -> Unit
             else -> {
                 if (seasons.size > 1) item {
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(seasons, key = { it }) { number -> Chip(stringResource(Res.string.iptv_season, number), current == number) { season = number } }
+                        items(seasons, key = { it }) { number -> Chip(stringResource(Res.string.iptv_season, number), current == number) { ClickEvent.log("iptv_season"); season = number } }
                     }
                 }
                 items(episodes, key = { it.url }) { episode -> EpisodeRow(episode, state.entry(episode.url)) { actions.playEpisode(episode) } }
@@ -340,7 +342,7 @@ private fun LazyGridScope.wide(key: Any? = null, content: @Composable () -> Unit
     }
 }
 @Composable private fun EpisodeRow(episode: Episode, entry: LibraryEntry?, onPlay: () -> Unit) {
-    Card(onClick = onPlay, shape = RoundedCornerShape(20.dp), border = BorderStroke(1.dp, TvColors.Outline.copy(alpha = 0.65f)), colors = CardDefaults.cardColors(containerColor = TvColors.Surface)) {
+    SurfaceCard(onClick = onPlay) {
         Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Box(Modifier.size(42.dp).clip(RoundedCornerShape(14.dp)).background(TvColors.Violet.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
                 Text("${episode.number}", style = MaterialTheme.typography.titleSmall, color = TvColors.Violet)
@@ -371,7 +373,7 @@ private fun LazyGridScope.wide(key: Any? = null, content: @Composable () -> Unit
         if (programmes.isEmpty()) item { EmptyNote(stringResource(Res.string.iptv_no_programmes)) }
         programmes.groupBy { formatDay(it.start) }.forEach { (day, list) ->
             item(key = day) { Text(day, style = MaterialTheme.typography.titleSmall, color = TvColors.Coral) }
-            items(list, key = { it.start }) { programme -> ProgrammeRow(programme, now, state.reminder(channel.url, programme.start)) { reminding = programme } }
+            items(list, key = { it.start }) { programme -> ProgrammeRow(programme, now, state.reminder(channel.url, programme.start)) { ClickEvent.log("iptv_reminder_open"); reminding = programme } }
         }
     }
     reminding?.let { programme -> ReminderDialog(channel, programme, state.reminder(channel.url, programme.start), now, actions) { reminding = null } }
@@ -380,9 +382,9 @@ private fun LazyGridScope.wide(key: Any? = null, content: @Composable () -> Unit
 @Composable internal fun ProgrammeRow(programme: Programme, now: Long, reminder: Reminder? = null, onRemind: (() -> Unit)? = null) {
     val airing = isAiring(programme, now)
     val upcoming = programme.start > now
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (airing) TvColors.Cyan.copy(alpha = 0.08f) else TvColors.Surface)
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(TvDimens.RadiusLg)).background(TvColors.SurfaceGradient).background(if (airing) TvColors.Cyan.copy(alpha = 0.08f) else androidx.compose.ui.graphics.Color.Transparent)
         .clickable(enabled = onRemind != null && upcoming, onClickLabel = stringResource(Res.string.iptv_reminder_title), role = Role.Button) { onRemind?.invoke() }
-        .border(1.dp, if (airing) TvColors.Cyan.copy(alpha = 0.35f) else TvColors.Outline.copy(alpha = 0.65f), RoundedCornerShape(18.dp)).padding(14.dp),
+        .border(1.dp, if (airing) TvColors.Cyan.copy(alpha = 0.35f) else TvColors.Outline.copy(alpha = 0.7f), RoundedCornerShape(TvDimens.RadiusLg)).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("${formatClock(programme.start)} – ${formatClock(programme.stop)}", style = MaterialTheme.typography.labelLarge, color = if (airing) TvColors.Cyan else TvColors.Muted)

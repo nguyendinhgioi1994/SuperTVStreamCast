@@ -23,7 +23,7 @@ struct iOSApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                // Shared playlist links: tvspace://import-playlist?name=…&url=…
+                // Shared playlist links: supertvcast://import-playlist?name=…&url=…
                 .onOpenURL { url in ImportLinks.shared.handle(link: url.absoluteString) }
         }
     }

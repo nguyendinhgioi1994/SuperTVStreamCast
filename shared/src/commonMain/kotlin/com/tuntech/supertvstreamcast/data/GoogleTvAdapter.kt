@@ -8,8 +8,8 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-/** The TV is showing a pairing code; call `connect` again with it. */
-class PairingCodeRequired : Exception()
+/** The TV is showing a pairing code of [length] characters; call `connect` again with it. */
+class PairingCodeRequired(val length: Int = 6) : Exception()
 /** The typed code does not belong to this pairing session; the session stays open for another try. */
 class PairingCodeInvalid : Exception()
 
@@ -21,6 +21,7 @@ class GoogleTvAdapter(private val open: TlsOpener, private val secrets: SecretSt
     private var pairing: Pair<String, TlsChannel>? = null
     private var remote: TlsChannel? = null
     private var reader: Job? = null
+    private var features = 0
     private val writes = Mutex()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -85,8 +86,9 @@ class GoogleTvAdapter(private val open: TlsOpener, private val secrets: SecretSt
                 }
             }
             remote = channel
+            this.features = features
             reader = scope.launch { listen(channel, features) }
-            return RemoteSession(checkNotNull(device), GoogleTvProtocol.capabilities)
+            return RemoteSession(checkNotNull(device), GoogleTvProtocol.capabilities(features))
         } catch (e: Throwable) { channel.close(); throw e }
     }
     /** The TV drops clients that stop answering pings, so the stream is read for the whole session. */
@@ -108,8 +110,15 @@ class GoogleTvAdapter(private val open: TlsOpener, private val secrets: SecretSt
         writes.withLock { channel.writeMessage(GoogleTvProtocol.key(key)) }
     }
     override suspend fun sendText(text: String): Unit = error("Text unsupported")
-    override suspend fun apps(): List<TvApp> = error("Apps unsupported")
-    override suspend fun launch(app: TvApp): Unit = error("Apps unsupported")
+    override suspend fun apps(): List<TvApp> {
+        check(GoogleTvProtocol.capabilities(features).apps) { "Apps unsupported" }
+        return GoogleTvProtocol.shortcuts
+    }
+    override suspend fun launch(app: TvApp) {
+        val channel = checkNotNull(remote)
+        check(GoogleTvProtocol.capabilities(features).apps) { "Apps unsupported" }
+        writes.withLock { channel.writeMessage(GoogleTvProtocol.appLink(app.id)) }
+    }
     override fun disconnect() {
         pairing?.second?.close(); pairing = null
         remote?.close(); remote = null

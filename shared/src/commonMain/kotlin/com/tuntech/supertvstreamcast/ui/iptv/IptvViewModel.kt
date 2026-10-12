@@ -2,6 +2,9 @@ package com.tuntech.supertvstreamcast.ui.iptv
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tuntech.supertvstreamcast.analytics.AppEvent
+import com.tuntech.supertvstreamcast.analytics.EventSink
+import com.tuntech.supertvstreamcast.analytics.log
 import com.tuntech.supertvstreamcast.data.*
 import com.tuntech.supertvstreamcast.domain.*
 import com.tuntech.supertvstreamcast.ui.UiError
@@ -52,8 +55,11 @@ data class IptvUiState(
     val pendingImport: ImportRequest? = null,
     val favorites: Set<String> = emptySet(), val hidden: Set<String> = emptySet(),
     val reminders: List<Reminder> = emptyList(),
-    /** A free-tier limit was reached; the host opens the paywall and calls [IptvViewModel.clearPremiumRequired]. */
-    val premiumRequired: Boolean = false,
+    /**
+     * The free-tier limit that was reached ([PremiumFeature.IPTV_SOURCES] or [PremiumFeature.IPTV_WATCH_TIME]);
+     * the host offers the paywall or a rewarded ad and calls [IptvViewModel.clearPremiumRequired].
+     */
+    val premiumRequired: PremiumFeature? = null,
 ) {
     val screen get() = stack.last()
     val active get() = sources.firstOrNull { it.id == activeId }
@@ -73,6 +79,8 @@ class IptvViewModel(
     private val store: IptvStore,
     private val repository: TvRepository = TvRepository(),
     private val now: () -> Long = ::epochSeconds,
+    /** Playback that really started; never URLs, titles or logins. */
+    private val events: EventSink = AppEvent::log,
 ) : ViewModel() {
     private val mutable = MutableStateFlow(IptvUiState())
     val state: StateFlow<IptvUiState> = mutable.asStateFlow()
@@ -85,11 +93,14 @@ class IptvViewModel(
     /** Sources whose provider guide was already tried this session. */
     private val guideTried = HashSet<String>()
     private var progressSavedAt = 0L
+    /** URL whose start was logged for the current [play]; a retry of the same channel is not a new use. */
+    private var startLogged: String? = null
     private var premium = false
     private var limits = IptvLimits()
     private var watchDay = 0L
     private var watchSeconds = 0
     private var watchJob: Job? = null
+    private var extraSources = 0
 
     init {
         viewModelScope.launch {
@@ -130,9 +141,14 @@ class IptvViewModel(
 
     /** Entitlement and Remote Config limits, pushed by the host whenever they change. */
     fun access(premium: Boolean, limits: IptvLimits) { this.premium = premium; this.limits = limits }
-    fun clearPremiumRequired() = mutable.update { it.copy(premiumRequired = false) }
-    private fun requirePremium() = mutable.update { it.copy(premiumRequired = true) }
-    private fun sourceBlocked(): Boolean = (!limits.canAddSource(state.value.sources.size, premium)).also { if (it) requirePremium() }
+    fun clearPremiumRequired() = mutable.update { it.copy(premiumRequired = null) }
+    private fun requirePremium(feature: PremiumFeature) = mutable.update { it.copy(premiumRequired = feature) }
+    private fun sourceBlocked(): Boolean =
+        (!limits.canAddSource(state.value.sources.size, premium, extraSources)).also { if (it) requirePremium(PremiumFeature.IPTV_SOURCES) }
+    /** Rewarded-ad grant: [seconds] more playback today. */
+    fun grantWatchTime(seconds: Int) { watchSeconds = (watchedToday() - seconds).coerceAtLeast(0); persist() }
+    /** Rewarded-ad grant: [count] more saved sources for this session. */
+    fun grantSources(count: Int) { extraSources += count }
     private fun watchedToday(): Int { val day = now() / 86_400; if (day != watchDay) { watchDay = day; watchSeconds = 0 }; return watchSeconds }
     /** Counts playback time while something plays and stops it at the free daily limit. */
     private fun countWatchTime() {
@@ -142,7 +158,7 @@ class IptvViewModel(
                 kotlinx.coroutines.delay(WATCH_TICK_SECONDS * 1000L)
                 if (state.value.player == null) break
                 watchSeconds = watchedToday() + WATCH_TICK_SECONDS
-                if (!limits.canWatch(watchSeconds, premium)) { closePlayer(); requirePremium() }
+                if (!limits.canWatch(watchSeconds, premium)) { closePlayer(); requirePremium(PremiumFeature.IPTV_WATCH_TIME) }
             }
             persist()
         }
@@ -346,8 +362,9 @@ class IptvViewModel(
     /** Plays [channel]; [queue] is the list it was picked from. A series opens its episode list instead. */
     fun play(channel: Channel, queue: List<Channel>, sourceId: String = owner(channel), autoNext: Boolean = false) {
         if (channel.kind == ContentKind.SERIES) { openSeries(channel, sourceId); return }
-        if (!limits.canWatch(watchedToday(), premium)) { closePlayer(); requirePremium(); return }
+        if (!limits.canWatch(watchedToday(), premium)) { closePlayer(); requirePremium(PremiumFeature.IPTV_WATCH_TIME); return }
         saveProgress()
+        startLogged = null
         mutable.update {
             val start = if (channel.kind == ContentKind.LIVE) 0 else resumePosition(it.entry(channel.url))
             it.copy(player = PlayerState(channel, sourceId, queue.filter { c -> c.kind != ContentKind.SERIES }, start, autoNext), error = null)
@@ -360,6 +377,13 @@ class IptvViewModel(
         val player = state.value.player ?: return
         if (player.queue.none { it.url == player.channel.url }) return
         adjacentChannel(player.queue, player.channel, step)?.let { play(it, player.queue, player.sourceId, player.autoNext) }
+    }
+    /** The native player is playing [url]: logged once per [play] as [AppEvent.FEATURE_USED]. */
+    fun started(url: String) {
+        val player = state.value.player?.takeIf { it.channel.url == url && startLogged != url } ?: return
+        startLogged = url
+        val type = state.value.sources.firstOrNull { it.id == player.sourceId }?.type
+        events.log(AppEvent.FEATURE_USED, "feature" to Feature.IPTV, "kind" to player.channel.kind, "type" to type)
     }
     /** Position of the video being played, reported by the player every few seconds. */
     fun progress(url: String, positionMs: Long, durationMs: Long) {

@@ -31,6 +31,7 @@ sealed class Screen(
     val skipAds: Boolean
         get() = when (this) {
             is Splash,
+            is Language,
             is Onboarding,
             is Paywall,
             is Paywall2 -> true
@@ -90,6 +91,16 @@ sealed class Screen(
         @SerialName("isInitial")
         val isInitial: Boolean = true,
     ) : Screen("Splash")
+
+    /**
+     * Language picker. [isInitial] is the first-launch step between the Splash and the Onboarding;
+     * otherwise it was opened from Settings and returns there.
+     */
+    @Serializable
+    data class Language(
+        @SerialName("isInitial")
+        val isInitial: Boolean = true,
+    ) : Screen("Language")
 
     @Serializable
     data object Onboarding : Screen("Onboarding")

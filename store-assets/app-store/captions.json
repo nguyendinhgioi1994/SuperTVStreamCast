@@ -1,0 +1,292 @@
+{
+  "_shots": [
+    "sports",
+    "remote",
+    "guide",
+    "library",
+    "home",
+    "player",
+    "mirror"
+  ],
+  "_appLanguage": {
+    "en-US": "en",
+    "vi": "vi",
+    "es-MX": "es",
+    "pt-BR": "pt",
+    "fr-FR": "fr",
+    "de-DE": "de",
+    "ja": "ja",
+    "ko": "ko",
+    "zh-Hans": "zh-Hans"
+  },
+  "en-US": [
+    [
+      "Live sports,\nmovies & series",
+      "From your own IPTV playlists"
+    ],
+    [
+      "A smart remote\nfor your TV",
+      "Samsung · LG · Sony · Google TV"
+    ],
+    [
+      "A full TV guide,\ngrid style",
+      "Reminders before kick-off"
+    ],
+    [
+      "All your playlists,\none library",
+      "M3U, Xtream Codes, files & streams"
+    ],
+    [
+      "Your whole TV\nin one app",
+      "Light & dark themes"
+    ],
+    [
+      "Watch it big,\nwatch it anywhere",
+      "Picture in Picture & AirPlay"
+    ],
+    [
+      "Share your screen\non the TV",
+      "Simple AirPlay mirroring steps"
+    ]
+  ],
+  "vi": [
+    [
+      "Thể thao, phim\n& series",
+      "Từ playlist IPTV của bạn"
+    ],
+    [
+      "Remote thông minh\ncho TV của bạn",
+      "Samsung · LG · Sony · Google TV"
+    ],
+    [
+      "Lịch phát sóng\ndạng lưới",
+      "Nhắc lịch trước giờ bóng lăn"
+    ],
+    [
+      "Mọi playlist,\nmột thư viện",
+      "M3U, Xtream Codes, tệp & luồng phát"
+    ],
+    [
+      "Cả chiếc TV\ntrong một ứng dụng",
+      "Giao diện sáng & tối"
+    ],
+    [
+      "Xem thật đã,\nxem mọi nơi",
+      "Hình trong hình & AirPlay"
+    ],
+    [
+      "Chiếu màn hình\nlên TV",
+      "Hướng dẫn AirPlay đơn giản"
+    ]
+  ],
+  "es-MX": [
+    [
+      "Deportes, películas\ny series",
+      "Desde tus propias listas IPTV"
+    ],
+    [
+      "Un control smart\npara tu TV",
+      "Samsung · LG · Sony · Google TV"
+    ],
+    [
+      "Guía de TV\nen cuadrícula",
+      "Recordatorios antes del partido"
+    ],
+    [
+      "Tus listas,\nuna biblioteca",
+      "M3U, Xtream Codes, archivos y streams"
+    ],
+    [
+      "Toda tu TV\nen una app",
+      "Temas claro y oscuro"
+    ],
+    [
+      "Míralo en grande,\nen cualquier lugar",
+      "Imagen en imagen y AirPlay"
+    ],
+    [
+      "Comparte tu\npantalla en la TV",
+      "Pasos sencillos con AirPlay"
+    ]
+  ],
+  "pt-BR": [
+    [
+      "Esportes, filmes\ne séries",
+      "Das suas próprias listas IPTV"
+    ],
+    [
+      "Um controle smart\npara sua TV",
+      "Samsung · LG · Sony · Google TV"
+    ],
+    [
+      "Guia de TV\nem grade",
+      "Lembretes antes do jogo"
+    ],
+    [
+      "Suas listas,\numa biblioteca",
+      "M3U, Xtream Codes, arquivos e streams"
+    ],
+    [
+      "Sua TV inteira\nem um só app",
+      "Temas claro e escuro"
+    ],
+    [
+      "Assista em grande,\nonde quiser",
+      "Picture in Picture e AirPlay"
+    ],
+    [
+      "Espelhe sua\ntela na TV",
+      "Passos simples com AirPlay"
+    ]
+  ],
+  "fr-FR": [
+    [
+      "Sport, films\net séries",
+      "Depuis vos propres playlists IPTV"
+    ],
+    [
+      "Une télécommande\nintelligente",
+      "Samsung · LG · Sony · Google TV"
+    ],
+    [
+      "Un guide TV\nen grille",
+      "Rappels avant le coup d'envoi"
+    ],
+    [
+      "Vos playlists,\nune bibliothèque",
+      "M3U, Xtream Codes, fichiers et flux"
+    ],
+    [
+      "Toute votre TV\ndans une app",
+      "Thèmes clair et sombre"
+    ],
+    [
+      "Regardez en grand,\npartout",
+      "Image dans l'image et AirPlay"
+    ],
+    [
+      "Partagez votre\nécran sur la TV",
+      "Recopie AirPlay pas à pas"
+    ]
+  ],
+  "de-DE": [
+    [
+      "Sport, Filme\n& Serien",
+      "Aus deinen eigenen IPTV-Playlists"
+    ],
+    [
+      "Die smarte\nFernbedienung",
+      "Samsung · LG · Sony · Google TV"
+    ],
+    [
+      "Das TV-Programm\nim Raster",
+      "Erinnerung vor dem Anpfiff"
+    ],
+    [
+      "Alle Playlists,\neine Mediathek",
+      "M3U, Xtream Codes, Dateien & Streams"
+    ],
+    [
+      "Dein ganzer TV\nin einer App",
+      "Helles & dunkles Design"
+    ],
+    [
+      "Groß schauen,\nüberall",
+      "Bild-in-Bild & AirPlay"
+    ],
+    [
+      "Bildschirm auf\nden TV bringen",
+      "Einfache AirPlay-Anleitung"
+    ]
+  ],
+  "ja": [
+    [
+      "スポーツ、映画、\nシリーズ",
+      "あなたのIPTVプレイリストで"
+    ],
+    [
+      "スマートな\nテレビリモコン",
+      "Samsung・LG・Sony・Google TV"
+    ],
+    [
+      "番組表を\nグリッドで一覧",
+      "キックオフ前にリマインダー"
+    ],
+    [
+      "プレイリストを\nまとめて管理",
+      "M3U・Xtream Codes・ファイル・ストリーム"
+    ],
+    [
+      "テレビのすべてを\nひとつのアプリで",
+      "ライト & ダークテーマ"
+    ],
+    [
+      "大画面で、\nどこでも",
+      "ピクチャ・イン・ピクチャ & AirPlay"
+    ],
+    [
+      "画面をテレビに\n映そう",
+      "AirPlayミラーリングをかんたん案内"
+    ]
+  ],
+  "ko": [
+    [
+      "스포츠, 영화,\n시리즈까지",
+      "내 IPTV 재생목록으로"
+    ],
+    [
+      "내 TV를 위한\n스마트 리모컨",
+      "Samsung · LG · Sony · Google TV"
+    ],
+    [
+      "한눈에 보는\n격자형 편성표",
+      "킥오프 전 알림"
+    ],
+    [
+      "모든 재생목록을\n하나의 라이브러리로",
+      "M3U, Xtream Codes, 파일, 스트림"
+    ],
+    [
+      "TV의 모든 것을\n하나의 앱으로",
+      "라이트 & 다크 테마"
+    ],
+    [
+      "크게 보고,\n어디서나 보고",
+      "PIP & AirPlay"
+    ],
+    [
+      "화면을 TV로\n공유하세요",
+      "쉬운 AirPlay 미러링 안내"
+    ]
+  ],
+  "zh-Hans": [
+    [
+      "体育、电影\n和剧集",
+      "来自你自己的 IPTV 播放列表"
+    ],
+    [
+      "智能电视\n遥控器",
+      "Samsung · LG · Sony · Google TV"
+    ],
+    [
+      "网格式\n完整节目单",
+      "开赛前提醒"
+    ],
+    [
+      "所有播放列表\n一个媒体库",
+      "M3U、Xtream Codes、文件和直播流"
+    ],
+    [
+      "整台电视\n尽在一个应用",
+      "浅色与深色主题"
+    ],
+    [
+      "大屏观看\n随处可看",
+      "画中画与 AirPlay"
+    ],
+    [
+      "把屏幕\n投到电视上",
+      "简单的 AirPlay 镜像指引"
+    ]
+  ]
+}

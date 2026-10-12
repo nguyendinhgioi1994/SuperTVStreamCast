@@ -18,3 +18,12 @@ captures
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
 .swiftpm-locks/
+
+# Generated App Store screenshots (~200 MB); rebuild with store-assets/app-store/build_screenshots.py
+store-assets/app-store/screenshots/
+store-assets/google-play/screenshots/
+
+# Release signing (backup in ~/Documents/keystore-backup/SuperTVStreamCast)
+keystore.properties
+*.jks
+*.keystore

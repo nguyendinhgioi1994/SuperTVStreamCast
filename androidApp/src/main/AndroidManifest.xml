@@ -4,8 +4,10 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
-    <!-- TV guide reminders; asked for when the first reminder is set. -->
+    <!-- TV guide reminders; asked when the first reminder is set. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Re-arms TV guide reminders after a restart (ReminderReceiver). -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- Scanning a playlist QR code; the camera is optional so devices without one can still install. -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
@@ -18,10 +20,10 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.TvSpace">
-        <!-- Google's public sample AdMob app id. Replace with TV Space's own before release. -->
+        <!-- Google's public sample AdMob app id. Replace with Super TV Cast's own before release. -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713" />
+            android:value="ca-app-pub-5826878137190597~6690092427" />
         <meta-data
             android:name="com.google.android.gms.ads.flag.OPTIMIZE_AD_LOADING"
             android:value="true" />
@@ -31,7 +33,12 @@
             android:value="androidx.media3.cast.DefaultCastOptionsProvider" />
         <receiver
             android:name="com.tuntech.supertvstreamcast.platform.ReminderReceiver"
-            android:exported="false" />
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
         <activity
             android:exported="true"
             android:supportsPictureInPicture="true"
@@ -44,14 +51,14 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Shared playlist links: tvspace://import-playlist?name=…&url=… -->
+            <!-- Shared playlist links: supertvcast://import-playlist?name=…&url=… -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
 
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <data android:scheme="tvspace" android:host="import-playlist" />
+                <data android:scheme="supertvcast" android:host="import-playlist" />
             </intent-filter>
         </activity>
 

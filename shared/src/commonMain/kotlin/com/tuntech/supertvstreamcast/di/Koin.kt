@@ -58,10 +58,22 @@ val UiKoinModule: Module = module {
         TvViewModel(
             prefs = get(),
             secrets = get(),
+            browser = get(),
             startTab = get<AppSettingRepository>().consumeStartFeature(),
         )
     }
     viewModel { com.tuntech.supertvstreamcast.ui.iptv.IptvViewModel(store = get()) }
+    // Cast tab: DLNA from shared code plus the platform's own receivers (Chromecast on Android).
+    single { com.tuntech.supertvstreamcast.data.cast.MediaServer() }
+    viewModel {
+        val server = get<com.tuntech.supertvstreamcast.data.cast.MediaServer>()
+        com.tuntech.supertvstreamcast.ui.cast.CastViewModel(
+            sources = listOf(com.tuntech.supertvstreamcast.data.cast.DlnaSource(get())) +
+                com.tuntech.supertvstreamcast.data.cast.platformReceiverSources(get<coil3.PlatformContext>()),
+            share = server::share,
+            stopSharing = server::stop,
+        )
+    }
     viewModelOf(::PaywallViewModel)
     viewModelOf(::AppLoadingViewModel)
 }
